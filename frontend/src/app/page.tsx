@@ -37,7 +37,7 @@ import {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
 };
 
 const fadeIn = {
@@ -57,17 +57,17 @@ const staggerFast = {
 
 const scaleIn = {
   hidden: { opacity: 0, scale: 0.85 },
-  show: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" } },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" as const } },
 };
 
 const slideLeft = {
   hidden: { opacity: 0, x: 60 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.7, ease: "easeOut" } },
+  show: { opacity: 1, x: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
 };
 
 const slideRight = {
   hidden: { opacity: 0, x: -60 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.7, ease: "easeOut" } },
+  show: { opacity: 1, x: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
 };
 
 function useScrollReveal() {
@@ -90,7 +90,7 @@ function Navbar() {
     <motion.header
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.6, ease: "easeOut" as const }}
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         scrolled
           ? "border-b border-white/10 bg-[#0a0a14]/90 backdrop-blur-lg"
@@ -189,7 +189,7 @@ function HeroSection() {
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.8, ease: "easeOut" }}
+          transition={{ delay: 0.35, duration: 0.8, ease: "easeOut" as const }}
         >
           <h1 className="text-5xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-7xl">
             Marketing strategy,
@@ -267,7 +267,7 @@ function HeroSection() {
         <motion.div
           initial={{ opacity: 0, x: -80, rotate: -6 }}
           animate={{ opacity: 1, x: 0, rotate: -6 }}
-          transition={{ delay: 1, duration: 0.9, ease: "easeOut" }}
+          transition={{ delay: 1, duration: 0.9, ease: "easeOut" as const }}
           className="absolute left-[3%] top-[22%] hidden xl:block"
         >
           <motion.div
@@ -294,7 +294,7 @@ function HeroSection() {
         <motion.div
           initial={{ opacity: 0, x: 80, rotate: 5 }}
           animate={{ opacity: 1, x: 0, rotate: 5 }}
-          transition={{ delay: 1.15, duration: 0.9, ease: "easeOut" }}
+          transition={{ delay: 1.15, duration: 0.9, ease: "easeOut" as const }}
           className="absolute right-[3%] top-[26%] hidden xl:block"
         >
           <motion.div
@@ -1162,7 +1162,7 @@ function Pricing() {
           <motion.div
             initial={{ opacity: 0, y: 60, scale: 0.95 }}
             animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.8, ease: "easeOut" as const }}
             className="rounded-3xl bg-gradient-to-b from-brand-600 to-brand-800 p-8 text-white shadow-2xl shadow-brand-600/30"
           >
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
