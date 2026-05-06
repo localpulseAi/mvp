@@ -222,7 +222,7 @@ function HeroSection() {
         >
           LocalPulse is an AI strategist built for independent local business owners.
           It watches your competitors, reads your local market, and delivers evidence-backed
-          recommendations — every Monday morning and on demand.
+          recommendations every Monday morning and on demand.
         </motion.p>
 
         {/* CTA row */}
@@ -513,7 +513,7 @@ function SolutionReveal() {
 
           <motion.p variants={fadeUp} className="mx-auto mt-8 max-w-2xl text-lg text-white/60 leading-relaxed">
             Not a content generator. Not a dashboard. A marketing strategist
-            powered by AI — that analyses your local market, watches your
+            powered by AI that analyses your local market, watches your
             competitors, and gives you reasoning you can argue with.
           </motion.p>
 
@@ -555,10 +555,10 @@ const briefLines = [
   { type: "rec", text: "Push Mother's Day promotions before Friday. Only one of your tracked competitors has activated. You have a first-mover window that closes Thursday." },
   { type: "spacer" },
   { type: "rec-label", text: "RECOMMENDATION #2" },
-  { type: "rec", text: "Hold on promotional pricing this week. Three of five tracked competitors launched promos in the last 10 days. A fourth offer erodes the signal and trains price sensitivity." },
+  { type: "rec", text: "Hold on promotional pricing this week. Several of your tracked competitors launched promos recently. Another offer erodes the signal and trains price sensitivity." },
   { type: "spacer" },
   { type: "label", text: "FROM YOUR COMPETITOR WATCH" },
-  { type: "body", text: "Competitor A is running targeted Meta Ads at $40–80/day — new behaviour for them. Competitor B's latest post has 340 likes in 48h, their highest engagement in 3 months." },
+  { type: "body", text: "Competitor A is running targeted Meta Ads, new behaviour for them. Competitor B is seeing their highest post engagement in months." },
 ];
 
 function BriefFeature() {
@@ -589,7 +589,7 @@ function BriefFeature() {
           >
             <motion.div variants={fadeIn} className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700">
               <Newspaper className="h-3.5 w-3.5" />
-              Feature 01 — Weekly Brief
+              Feature 01: Weekly Brief
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl leading-[1.08]">
               Monday morning.
@@ -598,7 +598,7 @@ function BriefFeature() {
             </motion.h2>
             <motion.p variants={fadeUp} className="mt-5 text-lg text-gray-600 leading-relaxed">
               Every Monday at 7am, a brief lands in your dashboard and inbox.
-              Not a generic industry roundup — an analysis of your specific market,
+              Not a generic industry roundup. An analysis of your specific market,
               your specific competitors, and what it means for the week ahead.
             </motion.p>
             <motion.ul variants={staggerContainer} className="mt-8 space-y-3">
@@ -694,8 +694,8 @@ function BriefFeature() {
 const chatMessages = [
   { role: "user", text: "Should I run a 30% off lunch promo for two weeks?" },
   { role: "ai", text: "You're asking whether a temporary deep discount on lunch makes sense right now." },
-  { role: "ai-context", text: "3 of 5 tracked competitors already running lunch promos · Mother's Day in 7 days · Lunch demand 9% below seasonal norm" },
-  { role: "ai-rec", text: "Hold on the 30% discount. The math requires a 35–40% volume lift to hold net revenue flat — unlikely against current demand. More importantly: three competitors already own this space. A fourth offer trains price sensitivity without differentiation." },
+  { role: "ai-context", text: "Multiple tracked competitors already running lunch promos · Mother's Day approaching · Lunch demand below seasonal norm" },
+  { role: "ai-rec", text: "Hold on the 30% discount. The volume lift required to hold net revenue flat is unlikely against current demand. More importantly, several competitors already own this space. A further offer trains price sensitivity without any differentiation." },
   { role: "ai-alt", title: "Better alternative", text: "A value-add offer (free dessert, complimentary coffee) protects margin and creates a differentiator without signalling discounting." },
 ];
 
@@ -733,7 +733,7 @@ function SessionFeature() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-white">Strategy Session</p>
-                  <p className="text-[10px] text-white/40">6 analysts · &lt;45s response</p>
+                  <p className="text-[10px] text-white/40">Specialist AI agents, each built for a different marketing lens</p>
                 </div>
                 <div className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               </div>
@@ -807,7 +807,7 @@ function SessionFeature() {
           >
             <motion.div variants={fadeIn} className="mb-4 inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm font-semibold text-amber-400">
               <MessageSquare className="h-3.5 w-3.5" />
-              Feature 02 — Strategy Session
+              Feature 02: Strategy Session
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl leading-[1.08]">
               Ask the question
@@ -815,15 +815,15 @@ function SessionFeature() {
               <span className="text-amber-400">you've been sitting on.</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="mt-5 text-lg text-white/55 leading-relaxed">
-              Every strategic question a business owner faces — should I run this promo,
-              is this the right time, how do I respond to that competitor — gets a real
+              Every strategic question a business owner faces: should I run this promo,
+              is this the right time, how do I respond to that competitor. Each one gets a real
               analysis that cuts straight to what matters.
             </motion.p>
             <motion.ul variants={staggerContainer} className="mt-8 space-y-3">
               {[
                 "Full market context pulled in automatically",
                 "All your tracked competitors checked before every response",
-                "Recommendation with the reasoning shown — not a verdict",
+                "Recommendation with the reasoning shown, not a verdict",
                 "Ranked alternatives when your original idea has issues",
                 "Follow-up questions preserve full session context",
               ].map((item) => (
@@ -836,7 +836,7 @@ function SessionFeature() {
             <motion.p variants={fadeUp} className="mt-6 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-sm font-semibold text-white/60 italic">
               "This is the feature that carries the USP. If this is excellent,
               the rest of the product can be modest and the business works."
-              <span className="not-italic font-normal text-white/30 block mt-1">— Product brief, April 2026</span>
+              <span className="not-italic font-normal text-white/30 block mt-1">Product brief, April 2026</span>
             </motion.p>
           </motion.div>
         </div>
@@ -849,9 +849,9 @@ function SessionFeature() {
 
 function CompetitorFeature() {
   const competitors = [
-    { name: "Wurst", dist: "0.3 km", trend: "up", signal: "New lunch special — high engagement", severity: "warn" },
+    { name: "Wurst", dist: "0.3 km", trend: "up", signal: "New lunch special, high engagement", severity: "warn" },
     { name: "Vin Room", dist: "0.4 km", trend: "up", signal: "Running Meta Ads for dinner-for-two", severity: "alert" },
-    { name: "OEB", dist: "0.8 km", trend: "up", signal: "Review velocity spike — 14 in 7 days", severity: "info" },
+    { name: "OEB", dist: "0.8 km", trend: "up", signal: "Review velocity spike this week", severity: "info" },
     { name: "The Main Dish", dist: "0.2 km", trend: "stable", signal: "No meaningful activity this cycle", severity: "ok" },
     { name: "Hankki", dist: "0.5 km", trend: "down", signal: "Service complaints rising in reviews", severity: "ok" },
   ];
@@ -869,7 +869,7 @@ function CompetitorFeature() {
           >
             <motion.div variants={fadeIn} className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700">
               <Users className="h-3.5 w-3.5" />
-              Feature 03 — Competitor Analyzer
+              Feature 03: Competitor Analyzer
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl leading-[1.08]">
               You focus on running
@@ -877,8 +877,8 @@ function CompetitorFeature() {
               <span className="text-emerald-600">your business.</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="mt-5 text-lg text-gray-600 leading-relaxed">
-              We watch your 5 named competitors across Instagram, Google Reviews,
-              Facebook, and Meta Ads — on a continuous cadence. You get strategic
+              We watch your key competitors across Instagram, Google Reviews,
+              Facebook, and Meta Ads on a continuous cadence. You get strategic
               reads on what they're doing and what it means for you.
             </motion.p>
             <motion.div variants={staggerContainer} className="mt-8 grid grid-cols-2 gap-4">
@@ -941,7 +941,7 @@ function CompetitorFeature() {
             >
               <p className="text-xs font-bold text-brand-700 mb-1">Cross-competitor pattern</p>
               <p className="text-xs text-gray-700 leading-relaxed">
-                3 of 5 competitors running lunch promos simultaneously. The space is saturated — any 4th offer would dilute.
+                Most tracked competitors running lunch promos simultaneously. The space is saturated and any additional offer would dilute.
               </p>
             </motion.div>
           </motion.div>
@@ -957,8 +957,8 @@ function HowItWorks() {
   const steps = [
     {
       num: "01",
-      title: "9-minute onboarding",
-      desc: "Tell us about your business, your cost structure, and your goals. Competitor Discovery finds and ranks your 5 most relevant competitors automatically.",
+      title: "Quick onboarding",
+      desc: "Tell us about your business, your cost structure, and your goals. Competitor Discovery finds and ranks your most relevant local competitors automatically.",
       icon: Target,
       color: "brand",
     },
@@ -1040,7 +1040,7 @@ function LocalMarketSection() {
   const occasions = [
     { label: "Mother's Day", date: "2nd Sun in May", signal: "critical", desc: "Largest reservation-driven occasion of the year. Businesses who activate early capture demand before competitors lock in." },
     { label: "Back to School", date: "Late Aug – Sep", signal: "high", desc: "Strong demand surge for retail, services, and food operators near family neighbourhoods. Timing the offer matters." },
-    { label: "Black Friday", date: "Late November", signal: "critical", desc: "Highest-traffic retail period of the year. Promo saturation is the real risk — differentiation beats discounting." },
+    { label: "Black Friday", date: "Late November", signal: "critical", desc: "Highest-traffic retail period of the year. Promo saturation is the real risk. Differentiation beats discounting." },
     { label: "Valentine's Day", date: "Feb 14", signal: "high", desc: "Second-largest occasion for hospitality and gifting verticals. First-mover advantage closes 2 weeks out." },
   ];
 
@@ -1127,7 +1127,7 @@ function Pricing() {
   const { ref, isInView } = useScrollReveal();
 
   const includes = [
-    "Weekly Strategic Brief — every Monday at 7am",
+    "Weekly Strategic Brief, every Monday at 7am",
     "Unlimited Strategy Sessions",
     "Competitor tracking across platforms",
     "Competitor Discovery during onboarding",
@@ -1212,7 +1212,7 @@ function Pricing() {
             <motion.div variants={fadeUp} className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
               <p className="text-sm font-bold text-gray-900 mb-2">Why founding member pricing?</p>
               <p className="text-sm text-gray-600 leading-relaxed">
-                The first 12 owners aren't just customers — they're shaping the product.
+                The first 12 owners aren't just customers. They're shaping the product.
                 Their feedback, their sessions, and their outcomes directly improve LocalPulse
                 for everyone who comes after. The lower rate is recognition of that.
               </p>
@@ -1222,7 +1222,7 @@ function Pricing() {
               <p className="text-sm font-bold text-gray-900 mb-3">What founding members commit to</p>
               <ul className="space-y-2">
                 {[
-                  "Weekly engagement — logging in unprompted",
+                  "Weekly engagement, logging in unprompted",
                   "Acting on at least one recommendation",
                   "Friday check-in replies during pilot",
                   "Honest feedback on what's working and what isn't",
