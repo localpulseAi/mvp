@@ -522,9 +522,9 @@ function SolutionReveal() {
             className="mx-auto mt-12 grid max-w-2xl grid-cols-3 gap-6"
           >
             {[
-              { icon: Newspaper, label: "Weekly Brief", sub: "Every Monday 7am" },
-              { icon: MessageSquare, label: "Strategy Sessions", sub: "On demand, <45s" },
-              { icon: Users, label: "Competitor Watch", sub: "5 competitors tracked" },
+              { icon: Newspaper, label: "Weekly Brief", sub: "Every Monday morning" },
+              { icon: MessageSquare, label: "Strategy Sessions", sub: "On demand, fast" },
+              { icon: Users, label: "Competitor Watch", sub: "Your key competitors tracked" },
             ].map((item) => (
               <motion.div
                 key={item.label}
@@ -817,12 +817,12 @@ function SessionFeature() {
             <motion.p variants={fadeUp} className="mt-5 text-lg text-white/55 leading-relaxed">
               Every strategic question a business owner faces — should I run this promo,
               is this the right time, how do I respond to that competitor — gets a real
-              analysis in under 45 seconds.
+              analysis that cuts straight to what matters.
             </motion.p>
             <motion.ul variants={staggerContainer} className="mt-8 space-y-3">
               {[
                 "Full market context pulled in automatically",
-                "All 5 competitors checked before every response",
+                "All your tracked competitors checked before every response",
                 "Recommendation with the reasoning shown — not a verdict",
                 "Ranked alternatives when your original idea has issues",
                 "Follow-up questions preserve full session context",
@@ -992,7 +992,7 @@ function HowItWorks() {
             How it works
           </motion.div>
           <motion.h2 variants={fadeUp} className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-            Up and running in 9 minutes.
+            Up and running in minutes.
             <br />
             <span className="text-brand-600">Value from the first Monday.</span>
           </motion.h2>
@@ -1129,9 +1129,9 @@ function Pricing() {
   const includes = [
     "Weekly Strategic Brief — every Monday at 7am",
     "Unlimited Strategy Sessions",
-    "5 competitors tracked across 4 platforms",
+    "Competitor tracking across platforms",
     "Competitor Discovery during onboarding",
-    "Local occasion calendar (200+ occasions)",
+    "Local occasion calendar",
     "Friday check-in during pilot",
     "Full session and brief history",
     "Data export anytime",
