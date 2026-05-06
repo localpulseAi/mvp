@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run build)",
+      "Bash(npm test)",
+      "Bash(npm run test:coverage)",
+      "Bash(pytest)",
+      "Bash(pytest *)",
+      "Bash(alembic upgrade head)",
+      "Bash(alembic revision *)",
+      "Bash(alembic history)",
+      "Bash(alembic current)",
+      "Bash(vercel *)",
+      "Bash(git remote *)",
+      "Bash(git push origin main)",
+      "Bash(npm run build)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q '\"file_path\":.*frontend/src'; then cd /Users/nish/Documents/startitup/Startitup/frontend && npm run lint --silent 2>&1 | head -30; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '─────────────────────────────────────────'\necho 'Session complete. Suggested next steps:'\necho '  /new-feature  — start a full-stack feature'\necho '  /testing       — write tests for recent changes'\necho '  /docs          — document recent changes'\necho 'Agents: deployer | planner | ui-reviewer | ux-enhancer | docs-writer | security-reviewer | code-reviewer | db-analyst'\necho '─────────────────────────────────────────'"
+          }
+        ]
+      }
+    ]
+  }
+}
