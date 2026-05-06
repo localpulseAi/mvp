@@ -80,7 +80,7 @@ const playColor: Record<string, { num: string; urgBg: string; urgText: string }>
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
-  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } }),
+  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35, ease: "easeOut" } }),
 };
 
 /* ─── component ─────────────────────────────────────────────── */
