@@ -9,8 +9,6 @@ import {
   ArrowRight,
   ArrowLeft,
   MapPin,
-  DollarSign,
-  Users,
   Search,
   Plus,
   X,
@@ -19,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
+import { discoverCompetitors, updateProfile, addCompetitor, type DiscoveryCandidate } from "@/lib/api";
 
 const STEPS = [
   { id: 1, label: "Business", title: "Your business basics" },
@@ -54,16 +53,6 @@ const FIXED_COST_BANDS = [
   { label: "Over $40k/mo", value: "gt40k" },
 ];
 
-const MOCK_COMPETITORS = [
-  { id: "1", name: "Wurst", address: "2437 4 St SW, Calgary", rationale: "0.3 km away · casual dining · similar price tier", score: 98 },
-  { id: "2", name: "OEB Breakfast Co.", address: "1015 17 Ave SW, Calgary", rationale: "0.8 km away · brunch-forward · strong social presence", score: 94 },
-  { id: "3", name: "Vin Room", address: "2310 4 St SW, Calgary", rationale: "0.4 km away · evening focus · overlapping dinner crowd", score: 91 },
-  { id: "4", name: "The Main Dish", address: "1804 4 St SW, Calgary", rationale: "0.2 km away · lunch staple · same niche", score: 89 },
-  { id: "5", name: "Hankki", address: "2208 4 St SW, Calgary", rationale: "0.5 km away · Korean-fusion · trendy crossover audience", score: 85 },
-  { id: "6", name: "Shikiji", address: "1608 14 St NW, Calgary", rationale: "1.1 km away · dinner destination · loyal following", score: 81 },
-  { id: "7", name: "Uniqlate", address: "1706 4 St SW, Calgary", rationale: "0.4 km away · quick-serve lunch · price competitive", score: 78 },
-  { id: "8", name: "Cassis Bistro", address: "2505 17 Ave SW, Calgary", rationale: "0.7 km away · French-influenced · strong brunch", score: 74 },
-];
 
 type FormData = {
   businessName: string;
@@ -88,6 +77,8 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [discovered, setDiscovered] = useState(false);
+  const [candidates, setCandidates] = useState<DiscoveryCandidate[]>([]);
+  const [discoverError, setDiscoverError] = useState("");
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
 
   const [form, setForm] = useState<FormData>({
@@ -122,17 +113,68 @@ export default function OnboardingPage() {
   }
 
   async function runDiscovery() {
+    if (!form.address || !form.niche) {
+      setDiscoverError("Please complete your address and niche in Step 1 first.");
+      return;
+    }
     setDiscoverLoading(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setDiscoverLoading(false);
-    setDiscovered(true);
+    setDiscoverError("");
+    try {
+      const result = await discoverCompetitors({
+        address: form.address,
+        niche: form.niche,
+        business_name: form.businessName || "My Business",
+        business_description: form.description || undefined,
+      });
+      setCandidates(result.candidates);
+      setDiscovered(true);
+    } catch (err) {
+      setDiscoverError(err instanceof Error ? err.message : "Discovery failed. Please try again.");
+    } finally {
+      setDiscoverLoading(false);
+    }
   }
 
   async function finish() {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setSaving(false);
-    router.push("/dashboard");
+    try {
+      await updateProfile({
+        business_name: form.businessName,
+        address: form.address,
+        niche: form.niche,
+        instagram_handle: form.instagram,
+        facebook_page: form.facebook,
+        business_description: form.description,
+        brand_voice: form.brandVoice,
+        quarter_goal: form.quarterGoal,
+        gross_margin_band: form.grossMarginBand,
+        fixed_cost_band: form.fixedCostBand,
+        price_range: form.priceRange,
+        capacity: form.capacity,
+        staff_size: form.staffSize,
+        peak_hours: form.peakHours,
+        onboarding_completed: true,
+        onboarding_step: 5,
+      });
+
+      // Add selected competitors
+      const selected = candidates.filter((c) => selectedCompetitors.includes(c.place_id));
+      await Promise.all(
+        selected.map((c) =>
+          addCompetitor({
+            name: c.name,
+            address: c.address,
+            google_place_id: c.place_id,
+            google_business_url: c.google_business_url,
+          }).catch(() => null)
+        )
+      );
+
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Onboarding save failed:", err);
+      setSaving(false);
+    }
   }
 
   const progress = ((step - 1) / (STEPS.length - 1)) * 100;
@@ -485,6 +527,9 @@ export default function OnboardingPage() {
                       candidates across 5 dimensions: proximity, scale,
                       geography, product type, and positioning.
                     </p>
+                    {discoverError && (
+                      <p className="mt-3 text-xs text-red-600">{discoverError}</p>
+                    )}
                     <button
                       onClick={runDiscovery}
                       disabled={discoverLoading}
@@ -508,7 +553,7 @@ export default function OnboardingPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-gray-900">
-                          {MOCK_COMPETITORS.length} candidates found
+                          {candidates.length} candidates found
                         </p>
                         <p className="text-xs text-gray-500">
                           Select up to 5 competitors to track
@@ -519,15 +564,15 @@ export default function OnboardingPage() {
                       </Badge>
                     </div>
                     <div className="space-y-2">
-                      {MOCK_COMPETITORS.map((c) => {
-                        const selected = selectedCompetitors.includes(c.id);
+                      {candidates.map((c) => {
+                        const selected = selectedCompetitors.includes(c.place_id);
                         const disabled =
                           !selected && selectedCompetitors.length >= 5;
                         return (
                           <button
-                            key={c.id}
+                            key={c.place_id}
                             type="button"
-                            onClick={() => !disabled && toggleCompetitor(c.id)}
+                            onClick={() => !disabled && toggleCompetitor(c.place_id)}
                             className={cn(
                               "flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-all",
                               selected
@@ -556,15 +601,17 @@ export default function OnboardingPage() {
                                 </span>
                                 <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600">
                                   <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                  {c.score}% match
+                                  {Math.round(c.composite_score * 10)}% match
                                 </span>
                               </div>
                               <p className="text-xs text-gray-500 truncate">
                                 {c.address}
                               </p>
-                              <p className="mt-0.5 text-xs text-gray-600">
-                                {c.rationale}
-                              </p>
+                              {c.reasoning && (
+                                <p className="mt-0.5 text-xs text-gray-600">
+                                  {c.reasoning}
+                                </p>
+                              )}
                             </div>
                           </button>
                         );
@@ -604,7 +651,7 @@ export default function OnboardingPage() {
               ) : (
                 <button
                   onClick={finish}
-                  disabled={saving || selectedCompetitors.length === 0}
+                  disabled={saving}
                   className="btn-amber"
                 >
                   {saving ? (

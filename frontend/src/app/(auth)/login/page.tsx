@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Zap, Mail, ArrowRight, Loader2 } from "lucide-react";
+import { requestMagicLink } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,10 +24,13 @@ export default function LoginPage() {
     }
     setError("");
     setLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    router.push(`/verify?email=${encodeURIComponent(email)}`);
+    try {
+      await requestMagicLink(email);
+      router.push(`/verify?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setLoading(false);
+    }
   }
 
   return (

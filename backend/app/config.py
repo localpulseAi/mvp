@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     max_cost_per_session_cents: int = 300
     max_cost_per_owner_month_cents: int = 8000
 
+    # Agent framework
+    agent_default_model: str = "claude-sonnet-4-6"
+    agent_strategist_model: str = "claude-opus-4-7"
+    agent_market_analyst_timeout: int = 30
+    agent_competitor_analyst_timeout: int = 35
+    agent_max_validation_retries: int = 1
+
+    # Admin (comma-separated email list for admin-only endpoints)
+    admin_emails: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = False

@@ -1,6 +1,6 @@
 """
-Competitor data retrieval API — Week 4.
-Exposes the data_retrieval service as HTTP endpoints.
+Competitor data retrieval API — Week 4 + Week 7.
+Exposes the data_retrieval service and AI analysis as HTTP endpoints.
 These are what the frontend dashboard and (later) agent tools call.
 """
 import uuid
@@ -22,6 +22,7 @@ from app.services.data_retrieval import (
     get_cross_competitor_patterns,
     get_competitor_summary,
 )
+from app.services.competitor_analyzer import get_all_analyses
 from sqlalchemy import select, and_
 
 router = APIRouter(prefix="/competitor-data", tags=["competitor-data"])
@@ -85,6 +86,35 @@ async def competitor_changes(
 ):
     """Changes for a single competitor over the specified window."""
     return await get_changes_for_competitor(competitor_id, owner.id, db, window_days=window_days)
+
+
+@router.get("/analysis")
+async def all_analyses(
+    owner: Owner = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Latest AI analysis for each competitor in the owner's tracked set.
+    Used by: competitor intelligence page, Weekly Brief sidebar.
+    """
+    analyses = await get_all_analyses(owner.id, db)
+    return {
+        "analyses": [
+            {
+                "id": str(a.id),
+                "competitor_id": str(a.competitor_id),
+                "generated_at": a.generated_at.isoformat(),
+                "positioning_summary": a.positioning_summary,
+                "strengths": (a.strengths or {}).get("items", []),
+                "vulnerabilities": (a.vulnerabilities or {}).get("items", []),
+                "recent_shifts": a.recent_shifts,
+                "strategic_implication": a.strategic_implication,
+                "data_freshness": a.data_freshness,
+            }
+            for a in analyses
+        ],
+        "total": len(analyses),
+    }
 
 
 @router.post("/run-detection")

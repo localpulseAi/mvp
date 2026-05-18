@@ -1,0 +1,19 @@
+The complete social media pipeline as it stands:                                                                          
+             
+  ┌────────────────────────────────────────────────────┬────────────────────────────────────────┐                           
+  │                       Source                       │                 Status                 │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────┤
+  │ Google Business (name, rating, hours, price)       │ 5/5                                    │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────┤
+  │ Google Reviews (50 reviews, sentiment, reply rate) │ 5/5                                    │                           
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────┤                           
+  │ Instagram posts (50 posts, engagement, hashtags)   │ 5/5                                    │                           
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────┤                           
+  │ Facebook posts                                     │ 0/5 (handles not fully discovered yet) │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────┤                           
+  │ Meta Ads                                           │ 0/5 (needs Facebook page slug)         │
+  └────────────────────────────────────────────────────┴────────────────────────────────────────┘                           
+                                                                                      
+  Facebook and Meta Ads will populate automatically on the next scheduled scrape cycle once Facebook page slugs are         
+  confirmed — the discovery found some (e.g. osmows, thetastypalate) but they haven't been scraped yet since the last scrape
+   run only triggered Google sources.  

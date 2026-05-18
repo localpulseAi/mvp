@@ -13,7 +13,7 @@ Design:
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 
 import structlog
@@ -330,7 +330,7 @@ async def run_change_detection(
     Run full change detection for one competitor across all windows.
     Returns newly written CompetitorChangeEvent rows.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now()  # naive — SQLite returns naive datetimes
     new_events: list[CompetitorChangeEvent] = []
 
     # Load all scrapes for this competitor (most recent first)

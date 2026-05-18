@@ -178,8 +178,11 @@ async def run_scrape_for_competitor(
     from app.services.normaliser import normalise_scrape
 
     scrape_rows: list[CompetitorScrape] = []
+    google_business_listing = None  # capture for social discovery
+
     for result in results:
         normalised_payload = None
+        normalised = None
         if result.success and result.raw_data:
             normalised = normalise_scrape(
                 source=result.source,
@@ -189,6 +192,8 @@ async def run_scrape_for_competitor(
             )
             if normalised:
                 normalised_payload = normalised.model_dump(mode="json")
+                if result.source == ScrapeSource.GOOGLE_BUSINESS and normalised.listing:
+                    google_business_listing = normalised.listing
 
         row = CompetitorScrape(
             competitor_id=competitor.id,
@@ -219,6 +224,19 @@ async def run_scrape_for_competitor(
     if not competitor.baseline_complete and success_count > 0:
         competitor.baseline_complete = True
         await db.commit()
+
+    # Auto-discover social handles if competitor has none yet
+    needs_social = not competitor.instagram_handle or not competitor.facebook_page
+    if needs_social and google_business_listing:
+        from app.services.social_discovery import discover_and_update_social_handles
+        website = google_business_listing.website
+        category = (google_business_listing.categories or [""])[0]
+        await discover_and_update_social_handles(
+            competitor=competitor,
+            db=db,
+            website=website,
+            category=category,
+        )
 
     return scrape_rows
 

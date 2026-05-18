@@ -14,7 +14,7 @@ Patterns detected:
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 
 import structlog
@@ -27,7 +27,7 @@ from app.models.changes import CrossCompetitorPattern, CompetitorChangeEvent
 log = structlog.get_logger()
 
 PATTERN_WINDOW_DAYS = 7   # look at the last 7 days for cross-competitor patterns
-MIN_COMPETITORS_FOR_PATTERN = 3
+MIN_COMPETITORS_FOR_PATTERN = 2
 
 
 @dataclass
@@ -114,11 +114,13 @@ def detect_hashtag_cluster(
             tag_to_competitors.setdefault(tag, []).append(c)
 
     # Filter to tags used by 3+ competitors
+    _skip_tags = {"food", "eat", "eats", "new", "good", "best", "love", "like"}
     shared_tags = {
         tag: competitors
         for tag, competitors in tag_to_competitors.items()
         if len(competitors) >= MIN_COMPETITORS_FOR_PATTERN
-        and len(tag) > 3  # skip very short/generic tags
+        and len(tag) >= 3  # include short local tags like #yyc
+        and tag not in _skip_tags
     }
 
     for tag, competitors in shared_tags.items():
@@ -181,7 +183,7 @@ async def run_pattern_detection(
     if len(competitors) < MIN_COMPETITORS_FOR_PATTERN:
         return []
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now()  # naive — SQLite returns naive datetimes
     period_start = now - timedelta(days=PATTERN_WINDOW_DAYS)
 
     # Load recent scrapes for all competitors

@@ -169,11 +169,11 @@ async def get_cross_competitor_patterns(
         "pattern_count": len(patterns),
         "patterns": [
             {
-                "type": p.pattern_type,
+                "pattern_type": p.pattern_type,
                 "severity": p.severity,
                 "description": p.description,
                 "strategic_implication": p.strategic_implication,
-                "competitor_names": p.competitor_names.get("names", []),
+                "competitors_involved": p.competitor_names.get("names", []),
                 "detected_at": p.detected_at.isoformat(),
             }
             for p in patterns

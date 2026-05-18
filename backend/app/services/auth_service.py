@@ -34,16 +34,17 @@ async def verify_magic_link_token(
 
     now = datetime.now(timezone.utc)
 
-    # Check expiry
-    if magic_link.expires_at < now:
+    # Check expiry — SQLite returns naive datetimes; make tz-aware before comparing
+    expires_at = magic_link.expires_at.replace(tzinfo=timezone.utc) if magic_link.expires_at.tzinfo is None else magic_link.expires_at
+    if expires_at < now:
         return None
 
     # Check already used
     if magic_link.used_at is not None:
         return None
 
-    # Mark as used
-    magic_link.used_at = now
+    # Mark as used — store naive UTC so SQLite reads it back consistently
+    magic_link.used_at = now.replace(tzinfo=None)
     await db.flush()
 
     # Fetch owner
@@ -120,7 +121,8 @@ async def get_current_owner(
         )
 
     now = datetime.now(timezone.utc)
-    if session.expires_at < now:
+    session_expires_at = session.expires_at.replace(tzinfo=timezone.utc) if session.expires_at.tzinfo is None else session.expires_at
+    if session_expires_at < now:
         await db.delete(session)
         await db.commit()
         raise HTTPException(

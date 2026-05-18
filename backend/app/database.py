@@ -9,10 +9,13 @@ if database_url.startswith("sqlite"):
     if not database_url.startswith("sqlite+aiosqlite"):
         database_url = database_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
 
+_is_sqlite = "sqlite" in database_url
+_connect_args = {"check_same_thread": False} if _is_sqlite else {"statement_cache_size": 0}
+
 engine = create_async_engine(
     database_url,
     echo=settings.app_env == "development",
-    connect_args={"check_same_thread": False} if "sqlite" in database_url else {},
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(

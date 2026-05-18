@@ -1,13 +1,15 @@
 """
-Competitor API — Week 3.
+Competitor API — Week 3 + Week 7.
 
 Endpoints:
-  GET    /competitors              list owner's competitors
-  POST   /competitors              add a competitor (max 5)
-  GET    /competitors/{id}         get one competitor
-  DELETE /competitors/{id}         soft-delete a competitor
-  POST   /competitors/{id}/scrape  trigger an immediate scrape (manual)
-  GET    /competitors/{id}/scrapes list scrape history (metadata only, no raw data)
+  GET    /competitors                    list owner's competitors
+  POST   /competitors                    add a competitor (max 5)
+  GET    /competitors/{id}               get one competitor
+  DELETE /competitors/{id}               soft-delete a competitor
+  POST   /competitors/{id}/scrape        trigger an immediate scrape (manual)
+  GET    /competitors/{id}/scrapes       list scrape history (metadata only, no raw data)
+  POST   /competitors/analyze-all        run AI analysis for full competitor set
+  GET    /competitors/{id}/analysis      latest AI analysis for one competitor
 """
 import uuid
 from datetime import datetime, timezone
@@ -29,6 +31,11 @@ from app.services.competitor_service import (
     remove_competitor,
     run_scrape_for_competitor,
 )
+from app.services.competitor_analyzer import (
+    generate_set_analysis,
+    get_latest_analysis,
+)
+from app.models.competitor import CompetitorAnalysis
 import structlog
 
 router = APIRouter(prefix="/competitors", tags=["competitors"])
@@ -94,6 +101,42 @@ class ScrapeHistoryItem(BaseModel):
             error_message=s.error_message,
             retry_count=s.retry_count,
             apify_run_id=s.apify_run_id,
+        )
+
+
+class AnalysisOut(BaseModel):
+    id: str
+    competitor_id: str
+    period_start: datetime
+    period_end: datetime
+    generated_at: datetime
+    positioning_summary: Optional[str]
+    strengths: Optional[list[str]]
+    vulnerabilities: Optional[list[str]]
+    recent_shifts: Optional[str]
+    strategic_implication: Optional[str]
+    data_freshness: Optional[dict]
+    model_used: Optional[str]
+    latency_ms: Optional[int]
+    cost_cents: Optional[int]
+
+    @classmethod
+    def from_orm(cls, a: CompetitorAnalysis) -> "AnalysisOut":
+        return cls(
+            id=str(a.id),
+            competitor_id=str(a.competitor_id),
+            period_start=a.period_start,
+            period_end=a.period_end,
+            generated_at=a.generated_at,
+            positioning_summary=a.positioning_summary,
+            strengths=(a.strengths or {}).get("items"),
+            vulnerabilities=(a.vulnerabilities or {}).get("items"),
+            recent_shifts=a.recent_shifts,
+            strategic_implication=a.strategic_implication,
+            data_freshness=a.data_freshness,
+            model_used=a.model_used,
+            latency_ms=a.latency_ms,
+            cost_cents=a.cost_cents,
         )
 
 
@@ -207,6 +250,56 @@ async def get_scrape_history(
     )
     scrapes = result.scalars().all()
     return [ScrapeHistoryItem.from_orm(s) for s in scrapes]
+
+
+@router.post("/analyze-all")
+async def analyze_all(
+    owner: Owner = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Run the Competitor Analyst agent for the owner's full competitor set.
+    Also runs change detection and cross-competitor pattern detection.
+    Persists CompetitorAnalysis rows and returns structured results.
+    May take up to 60 seconds — runs synchronously.
+    """
+    result = await generate_set_analysis(owner, db)
+    if result.get("status") == "error":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail=result.get("error", "Analysis failed"))
+
+    # Run change + pattern detection so cross-competitor patterns are fresh
+    try:
+        from app.services.change_detection import run_change_detection
+        from app.services.pattern_detection import run_pattern_detection
+        competitors_list = await get_competitors(owner.id, db)
+        for competitor in competitors_list:
+            await run_change_detection(competitor, owner.id, db)
+        if len(competitors_list) >= 3:
+            new_patterns = await run_pattern_detection(owner.id, competitors_list, db)
+            result["new_patterns"] = len(new_patterns)
+    except Exception as e:
+        log.warning("pattern_detection_failed_after_analysis", error=str(e))
+
+    return result
+
+
+@router.get("/{competitor_id}/analysis", response_model=AnalysisOut)
+async def get_analysis(
+    competitor_id: uuid.UUID,
+    owner: Owner = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Latest AI analysis for a single competitor."""
+    competitor = await get_competitor(competitor_id, owner.id, db)
+    if not competitor:
+        raise HTTPException(status_code=404, detail="Competitor not found.")
+
+    analysis = await get_latest_analysis(competitor_id, owner.id, db)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="No analysis available yet.")
+
+    return AnalysisOut.from_orm(analysis)
 
 
 # ── Background task helper ───────────────────────────────────────────────────

@@ -1,26 +1,83 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Zap, MailCheck, ArrowLeft, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Zap, MailCheck, ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { verifyToken, requestMagicLink } from "@/lib/api";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const token = searchParams.get("token");
   const email = searchParams.get("email") ?? "your email";
-  const [resent, setResent] = useState(false);
 
-  function handleResend() {
+  const [resent, setResent] = useState(false);
+  const [verifying, setVerifying] = useState(!!token);
+  const [verifyError, setVerifyError] = useState("");
+  const verifyCalledRef = useRef(false);
+
+  // If a token is in the URL, verify it immediately.
+  // The ref guard prevents React 18 StrictMode from double-invoking this.
+  useEffect(() => {
+    if (!token || verifyCalledRef.current) return;
+    verifyCalledRef.current = true;
+    verifyToken(token)
+      .then((data) => {
+        router.replace(data.redirect);
+      })
+      .catch((err) => {
+        setVerifyError(err instanceof Error ? err.message : "Invalid or expired sign-in link.");
+        setVerifying(false);
+      });
+  }, [token, router]);
+
+  async function handleResend() {
+    if (email === "your email") return;
     setResent(true);
+    try {
+      await requestMagicLink(email);
+    } catch {
+      // silently ignore — don't leak account existence
+    }
     setTimeout(() => setResent(false), 4000);
   }
 
+  // Token present — show verifying spinner or error
+  if (token) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="card p-8 text-center">
+            {verifying ? (
+              <>
+                <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-brand-600" />
+                <h1 className="text-xl font-bold text-gray-900">Signing you in…</h1>
+                <p className="mt-2 text-sm text-gray-500">Just a moment.</p>
+              </>
+            ) : (
+              <>
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100">
+                  <ArrowLeft className="h-6 w-6 text-red-600" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">Link expired</h1>
+                <p className="mt-2 text-sm text-gray-500">{verifyError}</p>
+                <Link href="/login" className="btn-primary mt-6 inline-flex">
+                  Back to login
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // No token — show "check your inbox"
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="card p-8 text-center">
-          {/* Icon */}
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
             <MailCheck className="h-7 w-7 text-emerald-600" />
           </div>
@@ -41,7 +98,6 @@ function VerifyContent() {
             </p>
           </div>
 
-          {/* Actions */}
           <div className="mt-6 space-y-3">
             <button
               onClick={handleResend}
@@ -62,7 +118,7 @@ function VerifyContent() {
           </div>
         </div>
 
-        {/* Demo shortcut - remove in production */}
+        {/* Dev shortcut - remove in production */}
         <div className="mt-4 card p-4 border-dashed">
           <p className="text-xs font-semibold text-gray-500 text-center mb-2">
             DEV SHORTCUT

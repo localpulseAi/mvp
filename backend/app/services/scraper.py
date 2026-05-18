@@ -40,13 +40,13 @@ SCRAPE_CADENCE: dict[ScrapeSource, int] = {
     ScrapeSource.META_ADS: 7,
 }
 
-# Apify Actor IDs per source
+# Apify Actor IDs per source — must use ~ not / as the username separator
 ACTOR_IDS: dict[ScrapeSource, str] = {
-    ScrapeSource.INSTAGRAM: "apify/instagram-profile-scraper",
-    ScrapeSource.FACEBOOK: "apify/facebook-pages-scraper",
-    ScrapeSource.GOOGLE_REVIEWS: "apify/google-maps-reviews-scraper",
-    ScrapeSource.GOOGLE_BUSINESS: "apify/google-maps-scraper",
-    ScrapeSource.META_ADS: "apify/meta-ads-scraper",
+    ScrapeSource.INSTAGRAM: "apify~instagram-scraper",
+    ScrapeSource.FACEBOOK: "apify~facebook-posts-scraper",
+    ScrapeSource.GOOGLE_REVIEWS: "compass~google-maps-reviews-scraper",
+    ScrapeSource.GOOGLE_BUSINESS: "compass~crawler-google-places",
+    ScrapeSource.META_ADS: "apify~facebook-ads-scraper",
 }
 
 
@@ -71,21 +71,21 @@ def _build_actor_input(source: ScrapeSource, competitor: dict) -> dict:
         if not handle:
             raise ValueError("instagram_handle required for Instagram scrape")
         return {
-            "usernames": [handle.lstrip("@")],
+            "search": handle.lstrip("@"),
+            "searchType": "user",
+            "resultsType": "posts",
             "resultsLimit": 50,
-            "scrapePosts": True,
-            "scrapeStories": False,
+            "addParentData": False,
         }
 
     if source == ScrapeSource.FACEBOOK:
         page = competitor.get("facebook_page", "")
         if not page:
             raise ValueError("facebook_page required for Facebook scrape")
+        page_url = page if page.startswith("http") else f"https://www.facebook.com/{page}"
         return {
-            "startUrls": [{"url": f"https://www.facebook.com/{page}"}],
+            "startUrls": [{"url": page_url}],
             "maxPosts": 25,
-            "scrapeAbout": True,
-            "scrapeReviews": False,
         }
 
     if source == ScrapeSource.GOOGLE_REVIEWS:
@@ -93,8 +93,10 @@ def _build_actor_input(source: ScrapeSource, competitor: dict) -> dict:
         if not place_id:
             raise ValueError("google_place_id required for Google Reviews scrape")
         return {
-            "placeIds": [place_id],
-            "maxReviewsPerPlace": 50,
+            "startUrls": [
+                {"url": f"https://www.google.com/maps/place/?q=place_id:{place_id}"}
+            ],
+            "maxReviews": 50,
             "language": "en",
             "reviewsSort": "newest",
         }
@@ -104,23 +106,34 @@ def _build_actor_input(source: ScrapeSource, competitor: dict) -> dict:
         name = competitor.get("name", "")
         if not place_id and not name:
             raise ValueError("google_place_id or name required for Google Business scrape")
+        if place_id:
+            return {
+                "placeIds": [place_id],
+                "language": "en",
+                "countryCode": "ca",
+            }
         return {
-            "searchStringsArray": [name] if not place_id else [],
-            "placeIds": [place_id] if place_id else [],
+            "searchStrings": [name],
             "maxCrawledPlacesPerSearch": 1,
             "language": "en",
             "countryCode": "ca",
         }
 
     if source == ScrapeSource.META_ADS:
-        page = competitor.get("facebook_page", "")
-        if not page:
-            raise ValueError("facebook_page required for Meta Ads scrape")
+        name = competitor.get("name", "")
+        facebook_page = competitor.get("facebook_page", "")
+        if not name and not facebook_page:
+            raise ValueError("name or facebook_page required for Meta Ads scrape")
+        import urllib.parse
+        query = urllib.parse.quote(name or facebook_page)
+        ads_url = (
+            f"https://www.facebook.com/ads/library/"
+            f"?active_status=active&ad_type=all&country=CA"
+            f"&q={query}&search_type=keyword_unordered"
+        )
         return {
-            "pageIds": [page],
-            "country": "CA",
-            "adType": "ALL",
-            "activeStatus": "ALL",
+            "startUrls": [{"url": ads_url}],
+            "maxAds": 30,
         }
 
     raise ValueError(f"Unknown source: {source}")

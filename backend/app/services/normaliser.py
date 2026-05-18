@@ -62,10 +62,9 @@ def _extract_mentions(text: str) -> list[str]:
 
 def normalise_instagram(raw: dict, competitor_id: str, scraped_at: datetime) -> NormalisedScrapeData:
     """
-    Apify instagram-profile-scraper output schema:
-    items: list of post objects with keys:
-      id, timestamp, caption, hashtags, likesCount, commentsCount,
-      videoViewCount, type (Image/Video/Sidecar), url
+    apify~instagram-scraper output schema:
+    items: list of post objects. hashtags and mentions may be pre-parsed lists
+    or embedded in caption text (both handled).
     """
     items = raw.get("items", [])
     posts: list[NormalisedPost] = []
@@ -73,19 +72,23 @@ def normalise_instagram(raw: dict, competitor_id: str, scraped_at: datetime) -> 
     for item in items:
         if not isinstance(item, dict):
             continue
-        caption = item.get("caption") or item.get("alt") or ""
+        caption = item.get("caption") or item.get("alt") or item.get("text") or ""
+        raw_tags = item.get("hashtags")
+        hashtags = raw_tags if isinstance(raw_tags, list) else _extract_hashtags(caption)
+        raw_mentions = item.get("mentions")
+        mentions = raw_mentions if isinstance(raw_mentions, list) else _extract_mentions(caption)
         post = NormalisedPost(
             source_id=str(item.get("id") or item.get("shortCode") or ""),
             source="instagram",
-            posted_at=_parse_dt(item.get("timestamp")),
+            posted_at=_parse_dt(item.get("timestamp") or item.get("takenAt")),
             caption=caption,
-            hashtags=_extract_hashtags(caption),
-            mentions=_extract_mentions(caption),
-            media_type=(item.get("type") or "unknown").lower(),
-            likes=int(item.get("likesCount") or 0),
-            comments=int(item.get("commentsCount") or 0),
-            plays=int(item.get("videoViewCount") or 0),
-            url=item.get("url"),
+            hashtags=hashtags,
+            mentions=mentions,
+            media_type=(item.get("type") or item.get("mediaType") or "unknown").lower(),
+            likes=int(item.get("likesCount") or item.get("likes") or 0),
+            comments=int(item.get("commentsCount") or item.get("comments") or 0),
+            plays=int(item.get("videoViewCount") or item.get("videoPlayCount") or 0),
+            url=item.get("url") or item.get("displayUrl"),
         )
         posts.append(post)
 
@@ -101,9 +104,10 @@ def normalise_instagram(raw: dict, competitor_id: str, scraped_at: datetime) -> 
 
 def normalise_facebook(raw: dict, competitor_id: str, scraped_at: datetime) -> NormalisedScrapeData:
     """
-    Apify facebook-pages-scraper output:
+    apify~facebook-posts-scraper output:
     items: list of post objects with keys:
-      postId, time, message, likes, shares, comments, link, type
+      postId, time, text, likes, shares, viewsCount, isVideo,
+      url, textReferences (hashtag/mention links)
     """
     items = raw.get("items", [])
     posts: list[NormalisedPost] = []
@@ -111,19 +115,27 @@ def normalise_facebook(raw: dict, competitor_id: str, scraped_at: datetime) -> N
     for item in items:
         if not isinstance(item, dict):
             continue
-        caption = item.get("message") or item.get("text") or ""
+        caption = item.get("text") or item.get("message") or ""
+        # Extract hashtags from textReferences (more reliable than regex on text)
+        refs = item.get("textReferences") or []
+        hashtags = [
+            r["url"].split("/hashtag/")[1].split("?")[0].lower()
+            for r in refs
+            if isinstance(r, dict) and "/hashtag/" in (r.get("url") or "")
+        ] or _extract_hashtags(caption)
         post = NormalisedPost(
             source_id=str(item.get("postId") or item.get("id") or ""),
             source="facebook",
-            posted_at=_parse_dt(item.get("time")),
+            posted_at=_parse_dt(item.get("time") or item.get("timestamp")),
             caption=caption,
-            hashtags=_extract_hashtags(caption),
+            hashtags=hashtags,
             mentions=_extract_mentions(caption),
-            media_type=(item.get("type") or "unknown").lower(),
-            likes=int(item.get("likes") or 0),
+            media_type="video" if item.get("isVideo") else "post",
+            likes=int(item.get("likes") or item.get("reactionLikeCount") or 0),
             comments=int(item.get("comments") or 0),
             shares=int(item.get("shares") or 0),
-            url=item.get("link"),
+            plays=int(item.get("viewsCount") or 0),
+            url=item.get("url") or item.get("facebookUrl"),
         )
         posts.append(post)
 
@@ -217,10 +229,10 @@ def normalise_google_business(raw: dict, competitor_id: str, scraped_at: datetim
 
 def normalise_meta_ads(raw: dict, competitor_id: str, scraped_at: datetime) -> NormalisedScrapeData:
     """
-    Apify meta-ads-scraper output:
-    items: list of ad objects with keys:
-      adId, startDate, endDate, isActive, adBodyText,
-      callToAction, adType, platforms, impressionsLowerBound, impressionsUpperBound
+    apify~facebook-ads-scraper output:
+    items: list of ad objects from the Meta Ads Library.
+    Key fields: adArchiveID, startDateFormatted, endDateFormatted, isActive,
+    snapshot (body/ctaText/cards), publisherPlatform, impressionsWithIndex.
     """
     items = raw.get("items", [])
     ads: list[NormalisedAdCreative] = []
@@ -228,17 +240,31 @@ def normalise_meta_ads(raw: dict, competitor_id: str, scraped_at: datetime) -> N
     for item in items:
         if not isinstance(item, dict):
             continue
+        snapshot = item.get("snapshot") or {}
+        cards = snapshot.get("cards") or []
+        # Ad body: try snapshot.body, then first card body, then caption field
+        ad_text = (
+            snapshot.get("body")
+            or (cards[0].get("body") if cards else None)
+            or snapshot.get("caption")
+            or ""
+        )
+        # Impressions from impressionsWithIndex dict
+        imp = item.get("impressionsWithIndex") or {}
         ad = NormalisedAdCreative(
-            ad_id=str(item.get("adId") or item.get("id") or ""),
-            started_at=_parse_dt(item.get("startDate")),
-            ended_at=_parse_dt(item.get("endDate")),
+            ad_id=str(
+                item.get("adArchiveID") or item.get("adId")
+                or item.get("adArchiveId") or item.get("id") or ""
+            ),
+            started_at=_parse_dt(item.get("startDateFormatted") or item.get("startDate")),
+            ended_at=_parse_dt(item.get("endDateFormatted") or item.get("endDate")),
             is_active=bool(item.get("isActive", True)),
-            ad_text=item.get("adBodyText") or item.get("message") or "",
-            call_to_action=item.get("callToAction"),
+            ad_text=ad_text,
+            call_to_action=snapshot.get("ctaText") or item.get("ctaText"),
             media_type=(item.get("adType") or "unknown").lower(),
-            platforms=item.get("platforms") or [],
-            impressions_lower=item.get("impressionsLowerBound"),
-            impressions_upper=item.get("impressionsUpperBound"),
+            platforms=item.get("publisherPlatform") or [],
+            impressions_lower=imp.get("lowerBoundCount") or imp.get("lowerBound"),
+            impressions_upper=imp.get("upperBoundCount") or imp.get("upperBound"),
         )
         ads.append(ad)
 

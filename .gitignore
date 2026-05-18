@@ -33,3 +33,6 @@ npm-debug.log*
 plan/*.docx
 *.db
 *.sqlite3
+
+# Secret keys — never commit
+secrets/
