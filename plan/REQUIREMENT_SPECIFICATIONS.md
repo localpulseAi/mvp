@@ -36,7 +36,7 @@ Requirement levels:
 - **FR-ONB-04 (MUST):** Onboarding shall collect cost structure as ranges, never as exact figures. Specifically: gross margin band (slider with discrete bands), monthly fixed cost ballpark (slider with bands), key product/service price ranges.
 - **FR-ONB-05 (MUST):** Onboarding shall collect capacity profile: peak service load (units appropriate to niche, e.g. covers per service for restaurants, appointments per day for salons, clients per week for fitness studios), staff size, peak operating hours.
 - **FR-ONB-06 (MUST):** Onboarding shall run Competitor Discovery (see 2.6) and present 8–12 ranked candidates for the owner to confirm or edit.
-- **FR-ONB-07 (MUST):** Onboarding shall offer optional integrations: Instagram (read-only), Google Business profile claim (read-only). Each integration is independently optional; none is required to complete onboarding.
+- **FR-ONB-07 (MUST):** Onboarding shall offer optional integrations: Instagram (read-only), Facebook page (read-only), Google Business profile claim (read-only). Each integration is independently optional; none is required to complete onboarding. The onboarding step shall explain that connecting at least one account unlocks the Social Presence Audit (see 2.9).
 - **FR-ONB-08 (MUST):** Onboarding shall not request any banking, accounting, POS, or financial system credentials.
 - **FR-ONB-09 (SHOULD):** Onboarding shall ask one open-ended question about the owner's most important goal for the current quarter, with the answer used by the Strategist agent for synthesis context.
 
@@ -108,6 +108,39 @@ Requirement levels:
 - **FR-SET-03 (MUST):** An owner shall be able to delete their account, which permanently removes all owner data.
 - **FR-SET-04 (MUST):** An owner shall be able to export all their data (briefs, sessions, competitor analyses) in a portable format.
 - **FR-SET-05 (MUST):** An owner shall be able to manage notification preferences (email on/off per feature).
+- **FR-SET-06 (MUST):** An owner shall be able to connect, disconnect, and re-connect their own social accounts (see 2.10) from settings.
+
+### 2.9 Social Presence Audit
+
+- **FR-SPA-01 (MUST):** The system shall generate a Social Presence Audit once per week for every owner with at least one connected social account (see 2.10).
+- **FR-SPA-02 (MUST):** The audit shall be generated and made available on Monday morning. It may be delivered alongside or shortly after the Weekly Strategic Brief.
+- **FR-SPA-03 (MUST):** The audit shall be available in the dashboard via a dedicated top-level page and shall be linked from the Weekly Strategic Brief.
+- **FR-SPA-04 (MUST):** The audit shall contain: a state-of-presence read per connected platform, a "what's working" section with reasoning, a "what's not working" section with hypotheses, a prioritised action plan, and a progress report against the prior audit's action plan.
+- **FR-SPA-05 (MUST):** The audit shall produce between 3 and 7 action items per run. Producing fewer or more is treated as a quality regression.
+- **FR-SPA-06 (MUST):** Each action item shall include: title, priority (high/medium/low), category (content, cadence, engagement, positioning, reviews, profile, other), why this matters, how to execute (owner-doable steps), what to watch for as the signal it is working, estimated effort band (under 15 minutes, 15–60 minutes, over an hour).
+- **FR-SPA-07 (MUST):** Each action item shall track status (pending, in progress, done, dismissed). The owner shall be able to update the status from the dashboard.
+- **FR-SPA-08 (MUST):** When generating a new audit, the system shall reference the prior audit's action items, report what changed (done, in progress, stalled, dismissed) and what observable signal it saw. Continuity between audits is required.
+- **FR-SPA-09 (MUST):** The audit shall display data freshness per connected platform.
+- **FR-SPA-10 (MUST):** When data is stale for any connected source beyond the thresholds in DATA-F-02, the audit shall explicitly note the gap rather than silently producing analysis without it.
+- **FR-SPA-11 (MUST):** The audit shall not display raw metrics as the primary surface. Metrics may appear as supporting context within reasoning paragraphs; they shall not be the headline.
+- **FR-SPA-12 (MUST):** The audit shall not produce numerical confidence scores or point forecasts. The audit shall not use verdict language. Strategist voice is enforced (consistent with AGENT-ST-03 and AGENT-ST-04).
+- **FR-SPA-13 (MUST):** An owner shall be able to request an on-demand audit refresh, rate-limited to one re-generation per 3 days.
+- **FR-SPA-14 (MUST):** Past audits shall be accessible via an audit history view, with no time limit on retention during an active subscription.
+- **FR-SPA-15 (MUST):** When the owner has no connected accounts, the audit page shall surface a clear connect-account prompt and shall not display a placeholder audit or stale data.
+- **FR-SPA-16 (SHOULD):** The audit shall be readable in under 5 minutes for an average owner.
+- **FR-SPA-17 (SHOULD):** Each action item shall include a "Discuss in Strategy Session" link that pre-fills a session question scoped to that item.
+- **FR-SPA-18 (SHOULD):** The Weekly Strategic Brief shall optionally reference current audit findings where they meaningfully affect the brief's recommendations.
+
+### 2.10 Owner social accounts
+
+- **FR-SOC-01 (MUST):** An owner shall be able to connect their own Instagram account in read-only mode.
+- **FR-SOC-02 (MUST):** An owner shall be able to link their Facebook page in read-only mode.
+- **FR-SOC-03 (MUST):** An owner shall be able to claim their Google Business Profile in read-only mode.
+- **FR-SOC-04 (MUST):** Each connected account shall be scraped on the same cadence used for competitor sources (see FR-CA-04). Owner-account data is stored separately from competitor data.
+- **FR-SOC-05 (MUST):** Connecting at least one account is a prerequisite for generating a Social Presence Audit. The product shall continue to function without any connected account; the Audit feature is the only one gated.
+- **FR-SOC-06 (MUST):** An owner shall be able to disconnect any account at any time. Disconnection halts future scraping for that source. Existing scraped data is retained for historical audits and can be deleted via account deletion (FR-SET-03).
+- **FR-SOC-07 (MUST):** Adding a connected account shall trigger initial baseline scraping for that source.
+- **FR-SOC-08 (MUST):** Owner social data shall never be exposed in raw form in the UI. Only analysis derived from it is shown (consistent with FR-CA-08 for competitors).
 
 ---
 
@@ -169,7 +202,18 @@ These define what each agent must do. Implementation details (prompt constructio
 - **AGENT-ST-06 (MUST):** The agent shall have access to: alternatives bank, owner history.
 - **AGENT-ST-07 (MUST):** The agent shall complete within 20 seconds for 95% of runs.
 
-### 3.8 Cross-cutting agent requirements
+### 3.8 Social Presence Analyst
+
+- **AGENT-SP-01 (MUST):** The agent shall accept owner profile, owner's own normalised social data, owner reviews, prior audit and prior action plan, and relevant market context (occasion calendar slice, competitor positioning summaries) as input.
+- **AGENT-SP-02 (MUST):** The agent shall produce structured output containing: state-of-presence per platform, what's-working items with reasoning, what's-not-working items with hypotheses, a ranked action plan of 3–7 items conforming to FR-SPA-06, and a progress assessment against the prior plan.
+- **AGENT-SP-03 (MUST):** The agent shall have access to: owner social data retrieval, owner-content change detection, occasion calendar, owner reviews with theme classification, brand voice profile, competitor positioning summaries (for differentiation framing only).
+- **AGENT-SP-04 (MUST):** The agent shall not produce numerical confidence scores. Hard constraint.
+- **AGENT-SP-05 (MUST):** The agent shall not use verdict language. Hard constraint.
+- **AGENT-SP-06 (MUST):** The agent shall reference the prior audit's action plan in its output and assign a status assessment to each prior item (done, in progress, stalled, dismissed, no longer relevant) based on observable signal in the new data.
+- **AGENT-SP-07 (MUST):** When a connected source has failed beyond the staleness threshold, the agent shall note the gap explicitly and shall not fabricate analysis from absent data.
+- **AGENT-SP-08 (MUST):** The agent shall complete within 30 seconds for 95% of runs.
+
+### 3.9 Cross-cutting agent requirements
 
 - **AGENT-X-01 (MUST):** Every agent run shall be logged with inputs, outputs, tool calls, latency, model used, and cost.
 - **AGENT-X-02 (MUST):** Every agent shall produce output conforming to a versioned schema. Schema validation failures result in one retry; second failure drops the agent's output from synthesis with a noted gap.
@@ -191,6 +235,9 @@ These define what each agent must do. Implementation details (prompt constructio
 - **DATA-07 (MUST):** Calgary occasion calendar with niche-relevance weights.
 - **DATA-08 (MUST):** Owner's own reviews with theme classification (separate from competitor reviews).
 - **DATA-09 (SHOULD):** Outcome tracking when manually captured during pilot.
+- **DATA-10 (MUST):** Owner's own social data per connected source per scrape timestamp (raw scrapes, normalised data, change diffs), with full historical retention during active subscription. Stored separately from competitor data.
+- **DATA-11 (MUST):** Social Presence Audit history per owner — full structured output, generation timestamp, model used, cost.
+- **DATA-12 (MUST):** Social Presence action plan items with full history of status transitions (timestamps for pending → in progress → done / dismissed), linkage to the audit that produced them, and linkage to any audit that subsequently reported on them.
 
 ### 4.2 Data the system does not store
 
@@ -215,8 +262,9 @@ These define what each agent must do. Implementation details (prompt constructio
 - **INT-06 (MUST):** Email service (Resend, Postmark, or equivalent) for transactional and digest emails.
 - **INT-07 (SHOULD):** Google Trends API or equivalent for demand signal data.
 - **INT-08 (SHOULD):** Eventbrite or city events feed integration.
-- **INT-09 (MAY):** Instagram Basic Display API for owner's own Instagram read access.
-- **INT-10 (MAY):** Google My Business API for owner's profile read access.
+- **INT-09 (SHOULD):** Instagram read access for owner's own account, via Instagram Basic Display API or public-profile scraping fallback. Required path (one of the two) for owners who connect Instagram as their Social Presence Audit source.
+- **INT-10 (SHOULD):** Google Business Profile read access for the owner's own listing. Required path for owners who connect Google Business as their Social Presence Audit source.
+- **INT-11 (SHOULD):** Facebook page read access for the owner's own page, via public-page scraping. Required path for owners who connect Facebook as their Social Presence Audit source.
 
 Integrations marked MUST shall have failure modes that do not crash the system. Each shall have a defined fallback or graceful degradation path.
 
@@ -231,6 +279,8 @@ Integrations marked MUST shall have failure modes that do not crash the system. 
 - **NFR-PERF-03 (MUST):** Weekly Brief generation: completes for all active owners within the 1-hour window before delivery.
 - **NFR-PERF-04 (MUST):** Competitor Discovery candidate render: 95th percentile under 15 seconds.
 - **NFR-PERF-05 (MUST):** Dashboard initial load: under 2 seconds.
+- **NFR-PERF-06 (MUST):** Social Presence Audit generation: 95th percentile under 60 seconds end-to-end (scraping freshness check, agent run, action-plan resolution against prior audit).
+- **NFR-PERF-07 (MUST):** Action-item status update (mark done, in progress, dismissed): server round-trip under 500 milliseconds.
 
 ### 6.2 Reliability
 
@@ -280,6 +330,8 @@ The V1 is shippable when all MUST requirements above are met, plus:
 - **ACC-05:** A bi-weekly Competitor Analyzer update generates correctly for at least 5 test owners with at least 4 weeks of baseline data.
 - **ACC-06:** The Friday check-in feature delivers correctly to all active owners in a test cohort.
 - **ACC-07:** Onboarding completes in under 12 minutes for at least 8 of 10 test users (with 9 minutes as the design target, allowing 33% margin for real-world variance).
+- **ACC-08:** Social Presence Audit generates correctly for at least 5 test owners across multiple weeks, with continuity preserved between audits (each new audit cites prior plan items and assigns observable status).
+- **ACC-09:** Social Presence Audit action plan is owner-doable — at least 80% of items in a sample of 30 generated items are rated by a reviewer as concrete, owner-doable, and tied to a hypothesis the owner could verify.
 
 ---
 

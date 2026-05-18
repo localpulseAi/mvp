@@ -1,6 +1,5 @@
 """
 Agent registry — maps agent names to agent classes.
-All 7 agents are registered here as of Week 6.
 """
 from app.agents.base import BaseAgent
 from app.agents.market_analyst import MarketAnalyst
@@ -10,6 +9,7 @@ from app.agents.timing_analyst import TimingAnalyst
 from app.agents.financial_analyst import FinancialAnalyst
 from app.agents.risk_analyst import RiskAnalyst
 from app.agents.strategist import Strategist
+from app.agents.social_presence_analyst import SocialPresenceAnalyst
 
 AGENT_REGISTRY: dict[str, type[BaseAgent]] = {
     "market_analyst": MarketAnalyst,
@@ -19,6 +19,7 @@ AGENT_REGISTRY: dict[str, type[BaseAgent]] = {
     "financial_analyst": FinancialAnalyst,
     "risk_analyst": RiskAnalyst,
     "strategist": Strategist,
+    "social_presence_analyst": SocialPresenceAnalyst,
 }
 
 # The six analysts run in parallel before the Strategist

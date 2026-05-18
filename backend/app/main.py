@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import create_tables
 import app.models  # ensure all tables are registered with Base.metadata
-from app.api import auth, market, competitors, competitor_data, briefs, agent_runs, sessions, discovery, owners, admin
+from app.api import auth, market, competitors, competitor_data, briefs, agent_runs, sessions, discovery, owners, admin, social_audit
 
 structlog.configure(
     processors=[
@@ -64,6 +64,7 @@ app.include_router(sessions.router, prefix="/api/v1")
 app.include_router(discovery.router, prefix="/api/v1")
 app.include_router(owners.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(social_audit.router, prefix="/api/v1")
 
 
 @app.get("/health")

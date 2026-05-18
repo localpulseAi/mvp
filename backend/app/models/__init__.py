@@ -5,6 +5,7 @@ from app.models.changes import CompetitorChangeEvent, CrossCompetitorPattern
 from app.models.agent import AgentRun, OrchestrationRun, OwnerCostLedger
 from app.models.brief import WeeklyBrief
 from app.models.session import StrategySession
+from app.models.social_audit import OwnerSocialAccount, OwnerSocialScrape, SocialAudit, SocialAuditActionItem
 
 __all__ = [
     "Owner",
@@ -22,4 +23,8 @@ __all__ = [
     "OwnerCostLedger",
     "WeeklyBrief",
     "StrategySession",
+    "OwnerSocialAccount",
+    "OwnerSocialScrape",
+    "SocialAudit",
+    "SocialAuditActionItem",
 ]

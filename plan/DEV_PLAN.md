@@ -3,17 +3,17 @@
 **Version:** 1.0
 **Status:** V1 build plan
 **Date:** April 2026
-**Target ship:** Week 10 from kick-off (founding-member pilot start)
+**Target ship:** Week 11 from kick-off (founding-member pilot start)
 
 ---
 
 ## 1. Overview
 
-This is the engineering plan to ship LocalPulse AI V1 in 10 weeks of solo founder work, with AI-assisted coding throughout. It assumes the PRD as fixed and focuses on how to actually build it.
+This is the engineering plan to ship LocalPulse AI V1 in 11 weeks of solo founder work, with AI-assisted coding throughout. It assumes the PRD as fixed and focuses on how to actually build it.
 
-The build is divided into 10 weeks, each with one focus. No week tries to do two big things. Compression happens by being ruthless about scope, not by parallelising.
+The build is divided into 11 weeks, each with one focus. No week tries to do two big things. Compression happens by being ruthless about scope, not by parallelising.
 
-After the V1 ships at end of week 10, the founding-member pilot begins. The next 6 weeks of pilot operation are not on this dev plan — they're operational, with tactical fixes and quality iteration based on real usage.
+After the V1 ships at end of week 11, the founding-member pilot begins. The next 6 weeks of pilot operation are not on this dev plan — they're operational, with tactical fixes and quality iteration based on real usage.
 
 ## 2. Stack decisions
 
@@ -37,7 +37,7 @@ These are locked at the start. Changing any of them mid-build is expensive.
 
 **Observability:** Structured logging from day one. Sentry for errors. Custom agent-run logging that captures inputs, outputs, tool calls, latency, and cost per run.
 
-## 3. The 10-week plan
+## 3. The 11-week plan
 
 Each week has a single focus, a defined deliverable, and a "done means" criterion. If a week's deliverable slips, the next week's plan should be re-evaluated, not just compressed.
 
@@ -175,7 +175,25 @@ Each week has a single focus, a defined deliverable, and a "done means" criterio
 
 **Done means:** A founder can complete onboarding through Discovery, see their 5 competitors set up, see baseline scraping start, and see their first competitor update render. Discovery suggestions feel reasonable, not random.
 
-### Week 10 — Onboarding polish and launch prep
+### Week 10 — Social Presence Audit
+
+**Focus:** The fourth flagship feature — the owner-facing read on their own social presence.
+
+**Deliverables:**
+
+- Owner social account connection flow: Instagram, Facebook page, Google Business Profile. Connect, disconnect, and re-connect from settings. Onboarding step updated to offer connections and explain the audit value.
+- Owner-account scraping pipeline reusing the competitor scraper infrastructure (Apify actors), pointed at owner handles. Cadence matches competitor cadence by source. Raw scrapes and normalised data stored in owner-data tables, separate from competitor tables.
+- Owner-content change detection (cadence, theme, sentiment shifts on the owner's own reviews) reusing the change-detection layer from Week 4.
+- New analyst agent: **Social Presence Analyst**. Input: owner profile, normalised owner social data, owner reviews, prior audit, prior action plan, relevant market context. Output: state-of-presence, what's-working, what's-not-working, action plan, prior-plan progress.
+- Audit orchestration job: weekly cron per owner with at least one connected account. Manual on-demand re-run endpoint, rate-limited.
+- Action-plan tracking model and APIs: status transitions, history, references between audits.
+- New dashboard page: **/audit** (or equivalent). Tabs for current audit, action plan, history, connected accounts. Action items rendered as cards with status controls and "Discuss in Strategy Session" deep-link.
+- Eval pass: 20+ hand-scored audits across vertical scenarios. Action-plan quality is the primary metric — concrete, owner-doable, tied to a verifiable hypothesis.
+- Wire audit findings into the Weekly Strategic Brief synthesizer so the brief can reference current audit signals where they matter.
+
+**Done means:** An owner with one or more connected accounts gets a real Social Presence Audit on Monday with a 3–7 item action plan. They can mark items done. The next week's audit references the previous plan and reports observable progress. Output reads like a strategist wrote it.
+
+### Week 11 — Onboarding polish and launch prep
 
 **Focus:** Everything that's not a flagship feature but determines whether the pilot works.
 
@@ -206,7 +224,9 @@ Some things should not wait until the product ships.
 
 ## 5. Critical path and risks
 
-The critical path is: Foundation (W1) → Market data (W2) → Competitor pipeline (W3-4) → Agent framework (W5) → All agents (W6) → Brief (W7) → Strategy Session (W8) → Competitor Analyzer (W9) → Polish (W10).
+The critical path is: Foundation (W1) → Market data (W2) → Competitor pipeline (W3-4) → Agent framework (W5) → All agents (W6) → Brief (W7) → Strategy Session (W8) → Competitor Analyzer (W9) → Social Presence Audit (W10) → Polish (W11).
+
+The Social Presence Audit reuses the scraping pipeline, normaliser, change detection, and agent harness from prior weeks. Its dependencies are wide but shallow — the new build surface is a single analyst agent plus action-plan tracking plus a dashboard page. It does not extend the critical path materially, but it cannot run earlier than W10 because the eval discipline established in W6 needs to be applied to its prompt before launch.
 
 **Highest-risk weeks:**
 
@@ -222,7 +242,7 @@ The critical path is: Foundation (W1) → Market data (W2) → Competitor pipeli
 - If by end of week 4, scraping reliability is below 90% per source, deal with reliability before moving to agents.
 - If by end of week 1, the founder has done zero owner conversations, pause build and start them — no point optimising a product nobody confirms wants help.
 
-## 6. After V1 ships (weeks 11–16)
+## 6. After V1 ships (weeks 12–17)
 
 Pilot operations, not feature build:
 
@@ -231,7 +251,7 @@ Pilot operations, not feature build:
 - Daily prompt iteration based on real Strategy Sessions.
 - Weekly synthesis of pilot feedback into prioritised improvement list.
 - Hand-tracking outcomes during pilot (this is the seed for V2's automated outcome tracking).
-- At week 16: conversion conversations with founding members.
+- At week 17: conversion conversations with founding members.
 
 ## 7. V2 candidate work (months 4–6)
 
@@ -248,7 +268,7 @@ The exact V2 priorities should come out of pilot data. Locking them now is prema
 
 ## 8. Cost during build
 
-Rough monthly costs during the build phase (weeks 1–10):
+Rough monthly costs during the build phase (weeks 1–11):
 
 - Hosting (Vercel + Railway + DB): $50–$100.
 - Apify (limited scraping during build): $20–$50.
@@ -266,7 +286,7 @@ To keep the plan honest:
 
 - No mobile native app.
 - No multi-tenant or organisation accounts (single-owner per account in V1).
-- No payment processing infrastructure during build (founding members are credit-card-on-file, no charge until pilot conversion; payment processing builds in week 11–12 of pilot).
+- No payment processing infrastructure during build (founding members are credit-card-on-file, no charge until pilot conversion; payment processing builds in week 12–13 of pilot).
 - No internationalisation. English, Calgary-area, USD/CAD billing only.
 - No SOC 2, no enterprise security infrastructure. Standard hygiene only (HTTPS, encrypted at rest, password hashing, rate-limiting).
 

@@ -296,3 +296,118 @@ export function getCrossPatterns(windowDays = 30) {
     `/competitor-data/patterns?window_days=${windowDays}`
   );
 }
+
+// ── Social Presence Audit ─────────────────────────────────────────────────────
+
+export type SocialAuditAccount = {
+  id: string;
+  platform: string;
+  handle: string | null;
+  display_name: string | null;
+  is_active: boolean;
+  connected_at: string;
+  last_scraped_at: string | null;
+  last_scrape_status: string | null;
+};
+
+export type AuditActionItem = {
+  id: string;
+  title: string;
+  priority: "high" | "medium" | "low";
+  category: string;
+  why: string;
+  how: string;
+  watch_for: string;
+  effort_band: string;
+  status: "pending" | "in_progress" | "done" | "dismissed";
+  display_order: number;
+};
+
+export type PlatformState = {
+  platform: string;
+  assessment: string;
+  cadence_observation: string;
+  content_mix_observation: string;
+  recent_direction: string;
+};
+
+export type WorkingItem = {
+  observation: string;
+  why_it_works: string;
+  theme: string;
+};
+
+export type NotWorkingItem = {
+  observation: string;
+  hypothesis: string;
+  category: string;
+};
+
+export type PriorPlanProgress = {
+  title: string;
+  status: string;
+  signal_observed: string;
+};
+
+export type SocialAuditDetail = {
+  id: string;
+  week_start: string;
+  week_end: string;
+  status: string;
+  state_of_presence: PlatformState[] | null;
+  what_working: WorkingItem[] | null;
+  what_not_working: NotWorkingItem[] | null;
+  prior_plan_progress: PriorPlanProgress[] | null;
+  market_connection: string | null;
+  data_freshness: Record<string, string> | null;
+  action_items: AuditActionItem[];
+  generated_at: string;
+};
+
+export type AuditSummary = {
+  id: string;
+  week_start: string;
+  week_end: string;
+  status: string;
+  generated_at: string;
+  action_item_count: number;
+  has_prior_plan_progress: boolean;
+};
+
+export function getSocialAccounts() {
+  return apiFetch<{ accounts: SocialAuditAccount[] }>("/social-audit/accounts");
+}
+
+export function connectSocialAccount(platform: string, handle: string, display_name?: string) {
+  return apiFetch<{ account: SocialAuditAccount }>("/social-audit/accounts", {
+    method: "POST",
+    body: JSON.stringify({ platform, handle, display_name }),
+  });
+}
+
+export function disconnectSocialAccount(id: string) {
+  return apiFetch<{ status: string }>(`/social-audit/accounts/${id}`, { method: "DELETE" });
+}
+
+export function getCurrentAudit() {
+  return apiFetch<{ audit: SocialAuditDetail | null }>("/social-audit/current");
+}
+
+export function listAudits(limit = 10) {
+  return apiFetch<{ audits: AuditSummary[]; total: number }>(`/social-audit?limit=${limit}`);
+}
+
+export function triggerAuditGenerate() {
+  return apiFetch<{ status: string; week_start: string }>("/social-audit/generate", { method: "POST" });
+}
+
+export function updateActionItemStatus(itemId: string, status: string) {
+  return apiFetch<{ item: AuditActionItem }>(`/social-audit/items/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function getActiveActionItems() {
+  return apiFetch<{ items: AuditActionItem[] }>("/social-audit/items/active");
+}

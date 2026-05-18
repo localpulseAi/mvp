@@ -54,7 +54,7 @@ LocalPulse is a **marketing strategist that happens to be powered by AI**. The w
 
 **V1 goals (first 6 months):**
 
-- Ship the three flagship features described in section 7.
+- Ship the four flagship features described in section 7.
 - Onboard 8–12 founding members across local business verticals in the pilot city.
 - Reach a state where founding members log in unprompted at least weekly, act on at least one recommendation, and tell at least one peer about the product.
 - Convert at least 30% of founding members to paid plans at the end of pilot.
@@ -85,7 +85,7 @@ These guide every product decision when trade-offs arise.
 
 ## 7. Flagship features
 
-Three features carry the entire V1 product. All three are AI-heavy, all three are strategist-shaped, all three share data infrastructure.
+Four features carry the entire V1 product. All four are AI-heavy, all four are strategist-shaped, all four share data infrastructure. Conceptually they cover the four directions an owner needs strategic help in: outward at the market (7.1), inward on a specific question (7.2), sideways at the competition (7.3), and inward on themselves (7.5).
 
 ### 7.1 Weekly Strategic Brief
 
@@ -151,6 +151,32 @@ A system-driven flow for proposing the owner's competitor set during onboarding.
 
 **Why it matters:** Most owners can name 1–2 obvious competitors but get fuzzy beyond that. Some name competitors who aren't actually competitive; some miss real threats. Discovery improves the competitor set quality for every owner.
 
+### 7.5 Social Presence Audit
+
+The owner connects their own social accounts. The system reads their social presence the way a strategist would read it — not as a dashboard of numbers but as a narrative of what they're putting out, how it's landing, and what to do differently. Refreshed weekly. Carries an action plan forward across audits.
+
+**Why this is not a Meta dashboard:**
+
+- Meta tells the owner *what* their numbers are. LocalPulse tells them *what's behind the numbers* and what to do.
+- Meta surfaces top posts by engagement. LocalPulse explains *why* a post worked — timing, theme, tone, occasion alignment — so the owner can reproduce the conditions.
+- Meta has no opinion. LocalPulse forms a view and recommends action with reasoning.
+- Meta doesn't know the owner's business. LocalPulse does, plus knows the competitor set, the local market, the occasion calendar, and the owner's brand voice. Analysis is grounded in the owner's actual situation.
+
+**What the audit contains:**
+
+- **State of presence:** plain-language read on where the owner stands on each connected platform — cadence, content mix, recent direction.
+- **What's working:** specific patterns in the owner's content over the past period that are driving outcomes, with reasoning. Not "your video did well" but *why* it did well.
+- **What's not working:** content patterns, cadence issues, positioning misfires, sentiment shifts in their own reviews — each with a hypothesis for why.
+- **Action plan:** 3–7 ranked, specific recommendations. Each item has: priority, why this matters, how to execute (concrete enough that an owner can do it without a marketer), what to watch for to know it's working.
+- **Progress on prior plan:** which items from the last audit moved, which stalled, what the system observed change. Continuity is the point — audits build on each other.
+- **From your market:** brief tie-in to occasion calendar and competitor positioning where it shapes the recommendations.
+
+**Cadence:** Weekly, auto-generated. Manual re-run available, rate-limited. Continuous in the sense that each audit references the previous one and tracks action items across audits.
+
+**Setup:** Requires at least one connected social account (Instagram, Facebook, or Google Business Profile). Onboarding offers the connections; the audit is unlocked once at least one is connected.
+
+**Why it matters:** Owners spend hours staring at Meta dashboards trying to make sense of numbers and rarely walk away with a decision. The audit does that interpretive work for them and converts it into action. It also closes the loop with the rest of the product — the Brief tells them what's happening in the market, the Competitor Analyzer tells them what others are doing, the Strategy Session answers their specific questions. The Social Presence Audit tells them about themselves. Four sides covered, no blind spot.
+
 ## 8. User experience requirements
 
 **Onboarding (9 minutes target):** Business basics, cost structure as ranges, capacity and operations, competitor set via Discovery, optional integrations (Instagram, Google Business). Save and resume supported.
@@ -160,6 +186,8 @@ A system-driven flow for proposing the owner's competitor set during onboarding.
 **Strategy Session:** Conversational input (text), follow-up questions in same session preserve context, target first response in under 45 seconds.
 
 **Competitor Analyzer:** Bi-weekly updates available in dashboard, owner can edit competitor set anytime, edit triggers re-baselining for the changed competitor.
+
+**Social Presence Audit:** Weekly audit available in dashboard with a dedicated top-level page, prominent in the main navigation. Action plan items are individually trackable — mark done, mark in progress, dismiss. Past audits accessible via history. Each audit references the prior plan and reports progress before introducing new items. A clear connect-accounts CTA appears when no accounts are connected; the rest of the product continues to work without it.
 
 **Friday check-in:** Every Friday during pilot, system asks "How did this week go? Anything you want to talk through before Monday's brief?" Owner reply feeds into next brief.
 
@@ -173,7 +201,7 @@ A system-driven flow for proposing the owner's competitor set during onboarding.
 
 **Standard rate:** $299/month.
 
-**Single tier in V1.** All three flagship features included. Five competitors tracked. Unlimited Strategy Sessions. Weekly Brief.
+**Single tier in V1.** All four flagship features included. Five competitors tracked. Unlimited Strategy Sessions. Weekly Brief. Weekly Social Presence Audit with action-plan tracking.
 
 **Tier complexity is a Month 4–6 problem,** not a Month 1 problem.
 

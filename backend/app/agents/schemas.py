@@ -209,3 +209,51 @@ class BriefSynthesisOutput(BaseModel):
     recommendations: list[BriefRecommendation] = Field(default_factory=list)
     watch_for: list[str] = Field(default_factory=list)
     competitor_section: Optional[list[CompetitorBriefEntry]] = None
+
+
+# ── Social Presence Analyst output ────────────────────────────────────────────
+
+class PresencePlatformState(BaseModel):
+    platform: str
+    assessment: str
+    cadence_observation: str
+    content_mix_observation: str
+    recent_direction: str
+
+
+class WorkingItem(BaseModel):
+    observation: str
+    why_it_works: str
+    theme: str  # timing | content_type | occasion | tone | engagement | consistency
+
+
+class NotWorkingItem(BaseModel):
+    observation: str
+    hypothesis: str
+    category: str  # content | cadence | engagement | positioning | reviews | profile
+
+
+class AuditActionItem(BaseModel):
+    title: str
+    priority: str   # high | medium | low
+    category: str   # content | cadence | engagement | positioning | reviews | profile | other
+    why: str
+    how: str
+    watch_for: str
+    effort_band: str  # under_15_min | 15_to_60_min | over_1_hour
+
+
+class PriorPlanItemProgress(BaseModel):
+    title: str
+    status: str  # done | in_progress | stalled | dismissed | no_longer_relevant
+    signal_observed: str
+
+
+class SocialPresenceAuditOutput(BaseModel):
+    state_of_presence: list[PresencePlatformState] = Field(default_factory=list)
+    what_working: list[WorkingItem] = Field(default_factory=list)
+    what_not_working: list[NotWorkingItem] = Field(default_factory=list)
+    action_plan: list[AuditActionItem] = Field(default_factory=list)
+    prior_plan_progress: list[PriorPlanItemProgress] = Field(default_factory=list)
+    market_connection: str = ""
+    data_freshness: dict[str, str] = Field(default_factory=dict)

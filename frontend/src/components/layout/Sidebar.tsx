@@ -11,6 +11,7 @@ import {
   Zap,
   ChevronRight,
   Bell,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,11 @@ const navItems = [
     label: "Competitors",
     href: "/competitors",
     icon: Users,
+  },
+  {
+    label: "Social Audit",
+    href: "/audit",
+    icon: Activity,
   },
 ];
 

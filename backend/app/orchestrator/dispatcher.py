@@ -28,6 +28,7 @@ from app.models.agent import AgentRun, OrchestrationRun
 from app.orchestrator.cost_tracker import get_or_create_ledger, record_cost
 from app.tools.market_data import market_data_tool
 from app.tools.competitor_data import competitor_data_tool
+from app.tools.owner_social_data import owner_social_data_tool
 from app.tools.registry import ToolRegistry
 
 log = structlog.get_logger()
@@ -37,6 +38,7 @@ def _build_full_registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(market_data_tool)
     registry.register(competitor_data_tool)
+    registry.register(owner_social_data_tool)
     return registry
 
 
