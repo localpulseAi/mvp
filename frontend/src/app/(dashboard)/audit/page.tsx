@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -21,178 +21,27 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { AuditActionItem, PlatformState, WorkingItem, NotWorkingItem, PriorPlanProgress } from "@/lib/api";
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const mockAccounts = [
-  { id: "1", platform: "instagram", handle: "@casaverde_yyc", last_scrape_status: "success", last_scraped_at: "2026-05-18T06:00:00Z" },
-  { id: "2", platform: "facebook", handle: "Casa Verde Calgary", last_scrape_status: "success", last_scraped_at: "2026-05-18T06:00:00Z" },
-  { id: "3", platform: "google_business", handle: "ChIJ...", last_scrape_status: "success", last_scraped_at: "2026-05-17T06:00:00Z" },
-];
-
-const mockPresence: PlatformState[] = [
-  {
-    platform: "instagram",
-    assessment: "Active presence — 5 posts/week average over the past month. Content leans heavily on food photography with strong product shots.",
-    cadence_observation: "Consistent Monday-Friday posting. Weekends are mostly quiet, which is unusual for a restaurant.",
-    content_mix_observation: "80% food product shots, 15% Reels (behind-the-scenes), 5% events. Recent shift toward Reels is working.",
-    recent_direction: "Last 3 Reels significantly outperformed static posts — this is a signal worth leaning into.",
-  },
-  {
-    platform: "facebook",
-    assessment: "Low activity — averaging 2 posts/week, mostly reposts from Instagram. Engagement is minimal.",
-    cadence_observation: "No consistent schedule. Posts cluster around special events then go quiet for days.",
-    content_mix_observation: "Almost entirely Instagram reposts. No Facebook-native content in the past 30 days.",
-    recent_direction: "No meaningful change. Effectively a dormant channel despite 400+ followers.",
-  },
-  {
-    platform: "google_business",
-    assessment: "Profile is current but review response rate is low. 4.2 star average across 84 reviews.",
-    cadence_observation: "No regular activity. Last update was 3 weeks ago.",
-    content_mix_observation: "12 reviews in the last 30 days. Only 4 received a response.",
-    recent_direction: "2 recent 2-star reviews about wait times are unanswered and publicly visible.",
-  },
-];
-
-const mockWorking: WorkingItem[] = [
-  {
-    observation: "Friday behind-the-scenes Reels consistently outperform all other content formats",
-    why_it_works: "Authenticity resonates with the local community audience. The Reels show craft and personality, which differentiates you from chain competitors. Friday timing aligns with people planning weekend dining — they see the prep and it builds anticipation.",
-    theme: "timing",
-  },
-  {
-    observation: "Local hashtag strategy on Instagram is well-targeted",
-    why_it_works: "Using #yycfood and #calgaryfoodie alongside dish-specific tags (#tacoyyc, #casaverde) catches both discovery traffic and engaged local followers. This explains why your Instagram reach has been growing despite a modest following.",
-    theme: "content_type",
-  },
-  {
-    observation: "Mother's Day week posts performed significantly above average",
-    why_it_works: "You posted 3 days in advance with reservation-focused copy — giving people time to act. The local occasion alignment and clear CTA (book now) were both present. This is the template for future event-tied content.",
-    theme: "occasion",
-  },
-];
-
-const mockNotWorking: NotWorkingItem[] = [
-  {
-    observation: "Facebook engagement is near-zero despite 400+ followers",
-    hypothesis: "Instagram reposts don't translate to Facebook — the algorithm deprioritises cross-posted content and the audience expects different content (community, events, announcements) rather than food photography. Your Facebook followers are likely older and local, which is valuable but requires native content.",
-    category: "content",
-  },
-  {
-    observation: "70% of Google Reviews go unanswered, including 2 recent negative ones",
-    hypothesis: "Unanswered reviews — especially negative ones — are publicly visible and signal to potential customers that feedback isn't valued. Google also appears to weight owner responsiveness in local search ranking. The 2 unanswered 2-star reviews are a specific reputational risk.",
-    category: "reviews",
-  },
-  {
-    observation: "No weekend posts despite weekends being peak dining days",
-    hypothesis: "The content calendar appears to be a workweek habit — posts drop off Friday afternoon and don't resume until Monday. Weekend diners — exactly the audience you want — are browsing Saturday and Sunday, but your feed goes quiet. This is a missed reach window.",
-    category: "cadence",
-  },
-];
-
-const mockActionItems: AuditActionItem[] = [
-  {
-    id: "1",
-    title: "Respond to all unanswered Google Reviews this week",
-    priority: "high",
-    category: "reviews",
-    why: "You have 12 unanswered reviews from the past 30 days, including 2 recent 2-star reviews that are publicly visible. Unanswered negative reviews are a direct reputational risk and may affect your local search ranking.",
-    how: "Open Google Business → Reviews → filter 'Unanswered'. For positive reviews: 1–2 sentence thank-you mentioning a specific detail from their review. For negative reviews: acknowledge the issue, apologize briefly, offer to resolve offline ('please reach us at [email]'). Don't argue or over-explain.",
-    watch_for: "Your response rate in Google Business dashboard. Aim for 100% of reviews from this week forward. Also watch for follow-up from the 2-star reviewers.",
-    effort_band: "under_15_min",
-    status: "pending",
-    display_order: 0,
-  },
-  {
-    id: "2",
-    title: "Post one native Facebook update per week (not a repost)",
-    priority: "high",
-    category: "content",
-    why: "Your Facebook page has 400+ followers but near-zero engagement because Instagram reposts don't work there. One native Facebook post per week will outperform all your current Facebook reposts combined.",
-    how: "Use Facebook for local context that your followers care about: this week's specials in prose form (not a photo), shout-outs to local events near you, or quick community news. 3–5 sentences + one photo taken on your phone. Post Tuesday or Wednesday — avoid weekends when organic reach drops.",
-    watch_for: "Likes and comments on native posts vs reposts. Expect native posts to get 3–5x more engagement within 2 weeks.",
-    effort_band: "15_to_60_min",
-    status: "in_progress",
-    display_order: 1,
-  },
-  {
-    id: "3",
-    title: "Add one Saturday or Sunday post to your weekly schedule",
-    priority: "high",
-    category: "cadence",
-    why: "Your Instagram goes quiet on weekends — exactly when your potential diners are browsing for where to eat. Even one weekend post would give you presence during peak discovery time.",
-    how: "Pick Saturday morning (9–10am) as your consistent weekend slot. Content can be simple: a photo of the day's specials with 2-3 sentences. Prepare it Friday afternoon so you don't have to think about it on the weekend.",
-    watch_for: "Reach and saves on weekend posts vs weekday posts. Track for 4 weeks before drawing conclusions.",
-    effort_band: "under_15_min",
-    status: "pending",
-    display_order: 2,
-  },
-  {
-    id: "4",
-    title: "Create a Reels template you can repeat weekly",
-    priority: "medium",
-    category: "content",
-    why: "Your behind-the-scenes Reels are your top-performing content format but you produce them inconsistently. A simple repeatable template removes the creative friction — you just need to record, not reinvent.",
-    how: "Use your Friday kitchen prep as the subject. Keep it 15–30 seconds: 3–4 clips of prep work + one clip of the finished dish. Use the same song or audio for brand consistency. Add your location tag and 3–4 hashtags. This can be filmed and posted in 20 minutes once you have the template.",
-    watch_for: "Reel views vs static post reach over 4 weeks. Also watch for saves — saved Reels compound reach over time.",
-    effort_band: "15_to_60_min",
-    status: "pending",
-    display_order: 3,
-  },
-  {
-    id: "5",
-    title: "Update your Google Business hours for summer",
-    priority: "medium",
-    category: "profile",
-    why: "Your Google Business hours still show winter hours. With summer patio season starting, incorrect hours lead to customers arriving when you're closed — a frustrating experience that often converts to a negative review.",
-    how: "Go to Google Business → Info → Hours. Update weekday and weekend hours to reflect your summer schedule. Also update the 'Special hours' section for any holiday weekends.",
-    watch_for: "Fewer 'arrived when closed' mentions in future reviews.",
-    effort_band: "under_15_min",
-    status: "done",
-    display_order: 4,
-  },
-];
-
-const mockPriorProgress: PriorPlanProgress[] = [
-  {
-    title: "Update Google Business hours for summer",
-    status: "done",
-    signal_observed: "Google Business profile now shows updated hours. Change was detected in the most recent scrape.",
-  },
-  {
-    title: "Post at least 3x per week on Instagram",
-    status: "done",
-    signal_observed: "5 posts this week, up from 3 the prior week. Cadence target met and exceeded.",
-  },
-  {
-    title: "Start responding to Google Reviews",
-    status: "in_progress",
-    signal_observed: "Response rate improved from 15% to 30% — moving in the right direction but still 70% of reviews unanswered.",
-  },
-];
-
-const mockAudit = {
-  id: "audit-1",
-  week_start: "2026-05-12",
-  week_end: "2026-05-18",
-  status: "completed",
-  generated_at: "2026-05-18T07:00:00Z",
-  state_of_presence: mockPresence,
-  what_working: mockWorking,
-  what_not_working: mockNotWorking,
-  prior_plan_progress: mockPriorProgress,
-  market_connection: "Mother's Day weekend passed strong — carry that occasion-tied content approach into June (Grad season starts May 24, Father's Day June 21). Your competitors are not doing occasion-specific content well; this is a gap you can own.",
-  data_freshness: { instagram: "2026-05-18T06:00:00Z", facebook: "2026-05-18T06:00:00Z", google_business: "2026-05-17T06:00:00Z" },
-  action_items: mockActionItems,
-};
-
-const mockHistoryItems = [
-  { id: "audit-1", week_start: "2026-05-12", week_end: "2026-05-18", status: "completed", generated_at: "2026-05-18T07:00:00Z", action_item_count: 5, has_prior_plan_progress: true },
-  { id: "audit-0", week_start: "2026-05-05", week_end: "2026-05-11", status: "completed", generated_at: "2026-05-11T07:00:00Z", action_item_count: 4, has_prior_plan_progress: false },
-];
+import {
+  getSocialAccounts,
+  getCurrentAudit,
+  listAudits,
+  triggerAuditGenerate,
+  updateActionItemStatus,
+  connectSocialAccount,
+} from "@/lib/api";
+import type {
+  SocialAuditAccount,
+  AuditActionItem,
+  SocialAuditDetail,
+  AuditSummary,
+} from "@/lib/api";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function parseDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 const PLATFORM_META: Record<string, { label: string; color: string; bg: string }> = {
   instagram: { label: "Instagram", color: "text-pink-600", bg: "bg-pink-50" },
@@ -246,7 +95,7 @@ function PlatformBadge({ platform }: { platform: string }) {
   );
 }
 
-function PriorProgressSection({ items }: { items: PriorPlanProgress[] }) {
+function PriorProgressSection({ items }: { items: { title: string; status: string; signal_observed: string }[] }) {
   if (!items.length) return null;
   const STATUS_STYLES: Record<string, string> = {
     done: "text-green-600 bg-green-50",
@@ -333,7 +182,6 @@ function ActionItemCard({
         </div>
 
         <div className="flex flex-col items-end gap-2 shrink-0">
-          {/* Status selector */}
           <div className="flex items-center gap-1">
             {(["pending", "in_progress", "done"] as ItemStatus[]).map((s) => {
               const meta = STATUS_META[s];
@@ -376,9 +224,74 @@ function ActionItemCard({
   );
 }
 
+// ── Connect account modal (inline) ────────────────────────────────────────────
+
+function ConnectAccountRow({
+  platform,
+  onConnected,
+}: {
+  platform: string;
+  onConnected: (account: SocialAuditAccount) => void;
+}) {
+  const meta = PLATFORM_META[platform];
+  const [handle, setHandle] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handleConnect = async () => {
+    if (!handle.trim()) return;
+    setConnecting(true);
+    try {
+      const res = await connectSocialAccount(platform, handle.trim());
+      onConnected(res.account);
+      setHandle("");
+      setOpen(false);
+    } catch {
+      // surface error inline would be ideal; for now just reset
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm"
+      >
+        <Plus className="h-4 w-4" />
+        Connect {meta?.label ?? platform}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        className="input px-3 py-1.5 text-sm w-48"
+        placeholder={platform === "google_business" ? "Place ID or @handle" : "@handle"}
+        value={handle}
+        onChange={(e) => setHandle(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleConnect()}
+        autoFocus
+      />
+      <button
+        onClick={handleConnect}
+        disabled={connecting || !handle.trim()}
+        className="btn-primary px-3 py-1.5 text-sm"
+      >
+        {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+      </button>
+      <button onClick={() => setOpen(false)} className="text-sm text-gray-400 hover:text-gray-600">
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 
-function NoAccountsState() {
+function NoAccountsState({ onConnected }: { onConnected: (a: SocialAuditAccount) => void }) {
   return (
     <div className="card p-10 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
@@ -389,14 +302,33 @@ function NoAccountsState() {
         The Social Presence Audit analyses your own Instagram, Facebook, and Google Business presence — not just numbers, but what&rsquo;s working, what isn&rsquo;t, and a prioritised plan to improve it.
       </p>
       <div className="flex flex-wrap justify-center gap-3 mb-6">
-        {["Instagram", "Facebook", "Google Business"].map((p) => (
-          <button key={p} className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm">
-            <Plus className="h-4 w-4" />
-            Connect {p}
-          </button>
+        {["instagram", "facebook", "google_business"].map((p) => (
+          <ConnectAccountRow key={p} platform={p} onConnected={onConnected} />
         ))}
       </div>
       <p className="text-xs text-gray-400">You can also connect accounts from Settings → Integrations</p>
+    </div>
+  );
+}
+
+function NoAuditState({ onGenerate, generating }: { onGenerate: () => void; generating: boolean }) {
+  return (
+    <div className="card p-10 text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
+        <RefreshCw className="h-7 w-7 text-brand-600" />
+      </div>
+      <h2 className="text-lg font-bold text-gray-900 mb-2">No audit for this week yet</h2>
+      <p className="muted max-w-sm mx-auto mb-6">
+        Generate your first Social Presence Audit. The AI will analyse your connected accounts and build your action plan.
+      </p>
+      <button
+        onClick={onGenerate}
+        disabled={generating}
+        className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm"
+      >
+        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+        {generating ? "Generating…" : "Generate audit"}
+      </button>
     </div>
   );
 }
@@ -405,265 +337,402 @@ function NoAccountsState() {
 
 export default function AuditPage() {
   const [activeTab, setActiveTab] = useState<Tab>("audit");
+  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [items, setItems] = useState<AuditActionItem[]>(mockActionItems);
-  const hasAccounts = true; // set to false to preview empty state
+  const [accounts, setAccounts] = useState<SocialAuditAccount[]>([]);
+  const [audit, setAudit] = useState<SocialAuditDetail | null>(null);
+  const [items, setItems] = useState<AuditActionItem[]>([]);
+  const [history, setHistory] = useState<AuditSummary[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleStatusChange = (id: string, status: ItemStatus) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)));
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const loadAudit = useCallback(async () => {
+    try {
+      const res = await getCurrentAudit();
+      if (res.audit) {
+        setAudit(res.audit);
+        setItems(res.audit.action_items);
+        if (res.audit.status === "completed" || res.audit.status === "failed") {
+          setGenerating(false);
+          stopPolling();
+        }
+      } else {
+        setAudit(null);
+      }
+    } catch {
+      setGenerating(false);
+      stopPolling();
+    }
+  }, [stopPolling]);
+
+  useEffect(() => {
+    async function init() {
+      setLoading(true);
+      try {
+        const [accsRes] = await Promise.all([getSocialAccounts()]);
+        setAccounts(accsRes.accounts);
+        if (accsRes.accounts.length > 0) {
+          await loadAudit();
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+    init();
+    return () => stopPolling();
+  }, [loadAudit, stopPolling]);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await triggerAuditGenerate();
+      pollRef.current = setInterval(loadAudit, 5000);
+    } catch {
+      setGenerating(false);
+    }
   };
 
-  const handleGenerate = () => {
-    setGenerating(true);
-    setTimeout(() => setGenerating(false), 2500);
+  const handleStatusChange = async (id: string, status: ItemStatus) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)));
+    try {
+      await updateActionItemStatus(id, status);
+    } catch {
+      await loadAudit();
+    }
+  };
+
+  const handleHistoryTab = async () => {
+    setActiveTab("history");
+    if (!historyLoaded) {
+      try {
+        const res = await listAudits(20);
+        setHistory(res.audits);
+        setHistoryLoaded(true);
+      } catch {
+        // leave empty
+      }
+    }
+  };
+
+  const handleAccountConnected = (account: SocialAuditAccount) => {
+    setAccounts((prev) => [...prev, account]);
   };
 
   const pendingCount = items.filter((i) => i.status === "pending").length;
   const doneCount = items.filter((i) => i.status === "done").length;
   const highCount = items.filter((i) => i.priority === "high" && i.status !== "done" && i.status !== "dismissed").length;
 
-  if (!hasAccounts) return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">Social Presence Audit</h1>
-      <NoAccountsState />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen p-8 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      </div>
+    );
+  }
+
+  if (accounts.length === 0) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="space-y-6">
+          <h1 className="text-xl font-bold text-gray-900">Social Presence Audit</h1>
+          <NoAccountsState onConnected={handleAccountConnected} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!audit && !generating) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="space-y-6">
+          <h1 className="text-xl font-bold text-gray-900">Social Presence Audit</h1>
+          <NoAuditState onGenerate={handleGenerate} generating={generating} />
+        </div>
+      </div>
+    );
+  }
+
+  const weekLabel = audit
+    ? `Week of ${parseDate(audit.week_start).toLocaleDateString("en-CA", { month: "long", day: "numeric" })} – ${parseDate(audit.week_end).toLocaleDateString("en-CA", { day: "numeric", year: "numeric" })}`
+    : "Generating…";
+
+  const generatedLabel = audit?.generated_at
+    ? `Generated ${new Date(audit.generated_at).toLocaleString("en-CA", { weekday: "long", hour: "numeric", minute: "2-digit" })}`
+    : null;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Social Presence Audit</h1>
-          <p className="muted mt-0.5">Week of May 12 – 18, 2026 · Generated Monday 7:00 AM</p>
+    <div className="min-h-screen p-8">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Social Presence Audit</h1>
+            <p className="muted mt-0.5">
+              {weekLabel}
+              {generatedLabel && ` · ${generatedLabel}`}
+            </p>
+          </div>
+          {audit?.status === "completed" && (
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm"
+            >
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {generating ? "Generating…" : "Re-generate"}
+            </button>
+          )}
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm"
-        >
-          {generating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          {generating ? "Generating…" : "Re-generate"}
-        </button>
-      </div>
 
-      {/* Metrics strip */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "High priority", value: highCount, color: "text-red-600", sub: "need attention" },
-          { label: "To do", value: pendingCount, color: "text-amber-600", sub: "action items" },
-          { label: "Completed", value: doneCount, color: "text-green-600", sub: "from this audit" },
-        ].map((m) => (
-          <div key={m.label} className="card p-4 text-center">
-            <div className={cn("text-2xl font-extrabold", m.color)}>{m.value}</div>
-            <div className="mt-0.5 text-sm font-semibold text-gray-900">{m.label}</div>
-            <div className="text-xs text-gray-400">{m.sub}</div>
+        {/* Generating skeleton */}
+        {(generating || audit?.status === "generating" || audit?.status === "regenerating") && (
+          <div className="card p-6 flex items-center gap-4">
+            <Loader2 className="h-6 w-6 animate-spin text-brand-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Analysing your social presence…</p>
+              <p className="muted mt-0.5">This takes 30–60 seconds. The page will update automatically.</p>
+            </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
-        {([
-          { id: "audit", label: "Audit Report" },
-          { id: "plan", label: `Action Plan`, badge: pendingCount > 0 ? pendingCount : undefined },
-          { id: "history", label: "History" },
-        ] as { id: Tab; label: string; badge?: number }[]).map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all",
-              activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            {tab.label}
-            {tab.badge !== undefined && (
-              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                {tab.badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Audit Report tab ────────────────────────────────────────────────── */}
-      {activeTab === "audit" && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" as const }}
-          className="space-y-5"
-        >
-          {/* Accounts strip */}
-          <div className="flex flex-wrap gap-2">
-            {mockAccounts.map((a) => (
-              <div key={a.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                <PlatformBadge platform={a.platform} />
-              </div>
-            ))}
-          </div>
-
-          {/* Prior plan progress */}
-          <PriorProgressSection items={mockAudit.prior_plan_progress} />
-
-          {/* State of presence */}
-          <div className="card p-5">
-            <h3 className="section-title mb-4">State of presence</h3>
-            <div className="space-y-4">
-              {mockAudit.state_of_presence.map((p) => (
-                <div key={p.platform} className="rounded-xl bg-gray-50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <PlatformBadge platform={p.platform} />
-                  </div>
-                  <p className="text-sm text-gray-800 mb-2">{p.assessment}</p>
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    <p className="text-xs text-gray-500"><span className="font-medium text-gray-700">Cadence: </span>{p.cadence_observation}</p>
-                    <p className="text-xs text-gray-500"><span className="font-medium text-gray-700">Content mix: </span>{p.content_mix_observation}</p>
-                  </div>
-                  <p className="mt-2 text-xs font-medium text-brand-700 bg-brand-50 rounded-lg px-3 py-1.5">{p.recent_direction}</p>
+        {audit?.status === "completed" && (
+          <>
+            {/* Metrics strip */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "High priority", value: highCount, color: "text-red-600", sub: "need attention" },
+                { label: "To do", value: pendingCount, color: "text-amber-600", sub: "action items" },
+                { label: "Completed", value: doneCount, color: "text-green-600", sub: "from this audit" },
+              ].map((m) => (
+                <div key={m.label} className="card p-4 text-center">
+                  <div className={cn("text-2xl font-extrabold", m.color)}>{m.value}</div>
+                  <div className="mt-0.5 text-sm font-semibold text-gray-900">{m.label}</div>
+                  <div className="text-xs text-gray-400">{m.sub}</div>
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* What's working */}
-          <div className="card p-5">
-            <h3 className="section-title mb-4 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              What&rsquo;s working
-            </h3>
-            <div className="space-y-3">
-              {mockAudit.what_working.map((w, i) => (
-                <div key={i} className="flex gap-3 rounded-xl border border-green-100 bg-green-50 p-4">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{w.observation}</p>
-                    <p className="muted mt-1 leading-relaxed">{w.why_it_works}</p>
-                    <span className="mt-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 uppercase">
-                      {w.theme.replace(/_/g, " ")}
+            {/* Tabs */}
+            <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+              {([
+                { id: "audit", label: "Audit Report", onClick: () => setActiveTab("audit") },
+                { id: "plan", label: "Action Plan", badge: pendingCount > 0 ? pendingCount : undefined, onClick: () => setActiveTab("plan") },
+                { id: "history", label: "History", onClick: handleHistoryTab },
+              ] as { id: Tab; label: string; badge?: number; onClick: () => void }[]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={tab.onClick}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                    activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  {tab.label}
+                  {tab.badge !== undefined && (
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                      {tab.badge}
                     </span>
-                  </div>
-                </div>
+                  )}
+                </button>
               ))}
             </div>
-          </div>
 
-          {/* What's not working */}
-          <div className="card p-5">
-            <h3 className="section-title mb-4 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              What&rsquo;s not working
-            </h3>
-            <div className="space-y-3">
-              {mockAudit.what_not_working.map((n, i) => (
-                <div key={i} className="flex gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{n.observation}</p>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 mt-2 mb-1">Why this is likely happening</p>
-                    <p className="muted leading-relaxed">{n.hypothesis}</p>
-                  </div>
+            {/* ── Audit Report tab ────────────────────────────────────────────── */}
+            {activeTab === "audit" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" as const }}
+                className="space-y-5"
+              >
+                {/* Accounts strip */}
+                <div className="flex flex-wrap gap-2">
+                  {accounts.filter((a) => a.is_active).map((a) => (
+                    <div key={a.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", a.last_scrape_status === "success" ? "bg-green-500" : "bg-amber-400")} />
+                      <PlatformBadge platform={a.platform} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Market connection */}
-          {mockAudit.market_connection && (
-            <div className="flex gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4">
-              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-              <div>
-                <p className="text-sm font-semibold text-brand-900 mb-1">From your market</p>
-                <p className="text-sm text-brand-800 leading-relaxed">{mockAudit.market_connection}</p>
-              </div>
-            </div>
-          )}
+                {/* Prior plan progress */}
+                {audit.prior_plan_progress && audit.prior_plan_progress.length > 0 && (
+                  <PriorProgressSection items={audit.prior_plan_progress as { title: string; status: string; signal_observed: string }[]} />
+                )}
 
-          {/* Data freshness */}
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(mockAudit.data_freshness ?? {}).map(([src, ts]) => (
-              <span key={src} className="text-xs text-gray-400">
-                {PLATFORM_META[src]?.label ?? src}: data through {new Date(ts).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
-              </span>
-            ))}
-          </div>
-        </motion.div>
-      )}
+                {/* State of presence */}
+                {audit.state_of_presence && audit.state_of_presence.length > 0 && (
+                  <div className="card p-5">
+                    <h3 className="section-title mb-4">State of presence</h3>
+                    <div className="space-y-4">
+                      {(audit.state_of_presence as { platform: string; assessment: string; cadence_observation: string; content_mix_observation: string; recent_direction: string }[]).map((p) => (
+                        <div key={p.platform} className="rounded-xl bg-gray-50 p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <PlatformBadge platform={p.platform} />
+                          </div>
+                          <p className="text-sm text-gray-800 mb-2">{p.assessment}</p>
+                          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                            <p className="text-xs text-gray-500"><span className="font-medium text-gray-700">Cadence: </span>{p.cadence_observation}</p>
+                            <p className="text-xs text-gray-500"><span className="font-medium text-gray-700">Content mix: </span>{p.content_mix_observation}</p>
+                          </div>
+                          <p className="mt-2 text-xs font-medium text-brand-700 bg-brand-50 rounded-lg px-3 py-1.5">{p.recent_direction}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-      {/* ── Action Plan tab ─────────────────────────────────────────────────── */}
-      {activeTab === "plan" && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" as const }}
-          className="space-y-3"
-        >
-          <p className="muted">
-            {pendingCount} items to do · {doneCount} done · mark items as you work through them
-          </p>
-          {items.filter((i) => i.status !== "dismissed").map((item) => (
-            <ActionItemCard key={item.id} item={item} onStatusChange={handleStatusChange} />
-          ))}
-          {items.some((i) => i.status === "dismissed") && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600">
-                Show dismissed items ({items.filter((i) => i.status === "dismissed").length})
-              </summary>
-              <div className="mt-2 space-y-2">
-                {items.filter((i) => i.status === "dismissed").map((item) => (
+                {/* What's working */}
+                {audit.what_working && audit.what_working.length > 0 && (
+                  <div className="card p-5">
+                    <h3 className="section-title mb-4 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      What&rsquo;s working
+                    </h3>
+                    <div className="space-y-3">
+                      {(audit.what_working as { observation: string; why_it_works: string; theme: string }[]).map((w, i) => (
+                        <div key={i} className="flex gap-3 rounded-xl border border-green-100 bg-green-50 p-4">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{w.observation}</p>
+                            <p className="muted mt-1 leading-relaxed">{w.why_it_works}</p>
+                            <span className="mt-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 uppercase">
+                              {w.theme.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* What's not working */}
+                {audit.what_not_working && audit.what_not_working.length > 0 && (
+                  <div className="card p-5">
+                    <h3 className="section-title mb-4 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      What&rsquo;s not working
+                    </h3>
+                    <div className="space-y-3">
+                      {(audit.what_not_working as { observation: string; hypothesis: string; category: string }[]).map((n, i) => (
+                        <div key={i} className="flex gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{n.observation}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 mt-2 mb-1">Why this is likely happening</p>
+                            <p className="muted leading-relaxed">{n.hypothesis}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Market connection */}
+                {audit.market_connection && (
+                  <div className="flex gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4">
+                    <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                    <div>
+                      <p className="text-sm font-semibold text-brand-900 mb-1">From your market</p>
+                      <p className="text-sm text-brand-800 leading-relaxed">{audit.market_connection}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Data freshness */}
+                {audit.data_freshness && (
+                  <div className="flex flex-wrap gap-3">
+                    {Object.entries(audit.data_freshness).map(([src, ts]) => (
+                      <span key={src} className="text-xs text-gray-400">
+                        {PLATFORM_META[src]?.label ?? src}: data through {new Date(ts).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── Action Plan tab ─────────────────────────────────────────────── */}
+            {activeTab === "plan" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" as const }}
+                className="space-y-3"
+              >
+                <p className="muted">
+                  {pendingCount} items to do · {doneCount} done · mark items as you work through them
+                </p>
+                {items.filter((i) => i.status !== "dismissed").map((item) => (
                   <ActionItemCard key={item.id} item={item} onStatusChange={handleStatusChange} />
                 ))}
-              </div>
-            </details>
-          )}
-        </motion.div>
-      )}
+                {items.some((i) => i.status === "dismissed") && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600">
+                      Show dismissed items ({items.filter((i) => i.status === "dismissed").length})
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      {items.filter((i) => i.status === "dismissed").map((item) => (
+                        <ActionItemCard key={item.id} item={item} onStatusChange={handleStatusChange} />
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </motion.div>
+            )}
 
-      {/* ── History tab ─────────────────────────────────────────────────────── */}
-      {activeTab === "history" && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" as const }}
-          className="space-y-3"
-        >
-          {mockHistoryItems.map((audit) => (
-            <button
-              key={audit.id}
-              onClick={() => setActiveTab("audit")}
-              className="card-hover w-full p-5 flex items-center gap-4 text-left"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50">
-                <Activity className="h-5 w-5 text-brand-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900">
-                  Week of {new Date(audit.week_start).toLocaleDateString("en-CA", { month: "long", day: "numeric" })} – {new Date(audit.week_end).toLocaleDateString("en-CA", { day: "numeric", year: "numeric" })}
-                </p>
-                <p className="muted mt-0.5">
-                  {audit.action_item_count} action items
-                  {audit.has_prior_plan_progress && " · includes plan progress"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "rounded-full px-2.5 py-1 text-xs font-semibold",
-                  audit.status === "completed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                )}>
-                  {audit.status}
-                </span>
-                <ChevronRight className="h-4 w-4 text-gray-400" />
-              </div>
-            </button>
-          ))}
-        </motion.div>
-      )}
+            {/* ── History tab ─────────────────────────────────────────────────── */}
+            {activeTab === "history" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" as const }}
+                className="space-y-3"
+              >
+                {history.length === 0 && (
+                  <p className="muted text-center py-8">No audit history yet.</p>
+                )}
+                {history.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={() => setActiveTab("audit")}
+                    className="card-hover w-full p-5 flex items-center gap-4 text-left"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50">
+                      <Activity className="h-5 w-5 text-brand-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        Week of {parseDate(h.week_start).toLocaleDateString("en-CA", { month: "long", day: "numeric" })} – {parseDate(h.week_end).toLocaleDateString("en-CA", { day: "numeric", year: "numeric" })}
+                      </p>
+                      <p className="muted mt-0.5">
+                        {h.action_item_count} action items
+                        {h.has_prior_plan_progress && " · includes plan progress"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "rounded-full px-2.5 py-1 text-xs font-semibold",
+                        h.status === "completed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      )}>
+                        {h.status}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </div>
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
