@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/landing/Navbar";
 import { ContextStrip, Hero } from "@/components/landing/Hero";
-import { Features } from "@/components/landing/Features";
+import { ProcessShowcase } from "@/components/landing/process/ProcessShowcase";
 import { Faq, FinalCta, Footer, HowItWorks, Pilot, Principles, TryIt } from "@/components/landing/Sections";
 
 export const metadata: Metadata = {
@@ -16,9 +16,9 @@ export default function LandingPage() {
       <Navbar />
       <main id="main">
         <Hero />
+        <ProcessShowcase />
         <ContextStrip />
         <TryIt />
-        <Features />
         <HowItWorks />
         <Pilot />
         <Principles />
