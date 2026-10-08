@@ -1,21 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import {
-  MessageSquare,
-  Send,
-  Loader2,
-  Zap,
-  ChevronRight,
-  Clock,
-  Plus,
-  ArrowUpRight,
-  BookOpen,
-  TrendingUp,
-  Eye,
-  Users,
-  CheckCircle2,
-} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Send, Loader2, ChevronRight, History, X, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import {
@@ -24,20 +11,15 @@ import {
   startSession,
   addFollowup,
   type SessionSummary,
-  type StrategistOutput,
 } from "@/lib/api";
-
-type StrategyOutput = {
-  type: "strategy";
-  restatement: string;
-  context: string;
-  analysis: string;
-  recommendation: string;
-  recommendationReasoning: string;
-  alternatives: { label: string; desc: string }[];
-  watchFor: string[];
-  agents: { name: string; status: "done" | "partial" }[];
-};
+import {
+  StrategyCard,
+  ThinkingIndicator,
+  StrategistAvatar,
+  mapStrategistOutput,
+  type StrategyOutput,
+} from "@/components/session/StrategyCard";
+import { SessionHistory } from "@/components/session/SessionHistory";
 
 type Message = {
   id: string;
@@ -45,15 +27,6 @@ type Message = {
   content: string | StrategyOutput;
   timestamp: Date;
 };
-
-const AGENT_LIST = [
-  "Market Analyst",
-  "Competitor Analyst",
-  "Brand & Positioning",
-  "Timing Analyst",
-  "Financial Sense-Check",
-  "Risk Analyst",
-];
 
 const STARTER_QUESTIONS = [
   "Should I run a 30% off lunch promo for two weeks?",
@@ -63,164 +36,6 @@ const STARTER_QUESTIONS = [
   "How should I respond to a competitor's aggressive pricing?",
 ];
 
-function mapStrategistOutput(raw: StrategistOutput): StrategyOutput {
-  return {
-    type: "strategy",
-    restatement: raw.restated_question,
-    context: raw.key_assumptions.length > 0 ? raw.key_assumptions.join(" ") : "",
-    analysis: raw.reasoning,
-    recommendation: raw.recommendation,
-    recommendationReasoning: raw.reasoning,
-    alternatives: raw.alternatives.map((a) => ({
-      label: a.option,
-      desc: [a.rationale, a.tradeoffs].filter(Boolean).join(" "),
-    })),
-    watchFor: raw.watch_for,
-    agents: AGENT_LIST.map((name) => ({ name, status: "done" as const })),
-  };
-}
-
-function StrategyCard({ output }: { output: StrategyOutput }) {
-  const [tab, setTab] = useState<"recommendation" | "alternatives" | "watchfor">(
-    "recommendation"
-  );
-
-  return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Agent run info */}
-      <div className="flex flex-wrap gap-1.5">
-        {output.agents.map((agent) => (
-          <span
-            key={agent.name}
-            className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600"
-          >
-            <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
-            {agent.name}
-          </span>
-        ))}
-      </div>
-
-      {/* Restatement */}
-      <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-          What you're asking
-        </p>
-        <p className="text-sm text-gray-700 leading-relaxed">{output.restatement}</p>
-      </div>
-
-      {/* Context */}
-      {output.context && (
-        <div className="rounded-xl bg-brand-50 border border-brand-100 p-4">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <TrendingUp className="h-3.5 w-3.5 text-brand-600" />
-            <p className="text-xs font-semibold text-brand-700">Strategic context</p>
-          </div>
-          <p className="text-sm text-gray-700 leading-relaxed">{output.context}</p>
-        </div>
-      )}
-
-      {/* Analysis */}
-      <div className="p-4 border border-gray-200 rounded-xl">
-        <div className="flex items-center gap-1.5 mb-2">
-          <BookOpen className="h-3.5 w-3.5 text-gray-500" />
-          <p className="text-xs font-semibold text-gray-600">The analysis</p>
-        </div>
-        <p className="text-sm text-gray-700 leading-relaxed">{output.analysis}</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="card overflow-hidden">
-        <div className="flex border-b border-gray-100">
-          {(
-            [
-              { id: "recommendation", label: "Recommendation", icon: Zap },
-              { id: "alternatives", label: "Alternatives", icon: ArrowUpRight },
-              { id: "watchfor", label: "Watch for", icon: Eye },
-            ] as const
-          ).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-xs font-semibold transition-all border-b-2",
-                tab === id
-                  ? "border-brand-600 text-brand-700 bg-brand-50/50"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-5">
-          {tab === "recommendation" && (
-            <div>
-              <p className="text-sm font-bold text-gray-900 leading-snug">
-                {output.recommendation}
-              </p>
-              <p className="mt-3 text-sm text-gray-700 leading-relaxed">
-                {output.recommendationReasoning}
-              </p>
-            </div>
-          )}
-          {tab === "alternatives" && (
-            <div className="space-y-4">
-              {output.alternatives.length === 0 ? (
-                <p className="text-sm text-gray-500">No alternatives provided.</p>
-              ) : (
-                output.alternatives.map((alt, i) => (
-                  <div key={i} className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
-                      {i + 1}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{alt.label}</p>
-                      <p className="mt-1 text-sm text-gray-700 leading-relaxed">{alt.desc}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-          {tab === "watchfor" && (
-            <ul className="space-y-3">
-              {output.watchFor.map((item, i) => (
-                <li key={i} className="flex gap-2.5 text-sm text-gray-700">
-                  <Eye className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                  <span className="leading-relaxed">{item}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ThinkingIndicator() {
-  return (
-    <div className="flex items-center gap-2 text-sm text-gray-500">
-      <div className="flex gap-1">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-bounce"
-            style={{ animationDelay: `${i * 150}ms` }}
-          />
-        ))}
-      </div>
-      <span className="text-xs">6 agents working… ~40s</span>
-    </div>
-  );
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
-}
-
 export default function SessionPage() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -228,7 +43,9 @@ export default function SessionPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     listSessions()
@@ -241,6 +58,7 @@ export default function SessionPage() {
   }, [messages, isThinking]);
 
   async function loadSessionMessages(sessionId: string) {
+    setHistoryOpen(false);
     setLoadingSession(true);
     setActiveSessionId(sessionId);
     try {
@@ -271,8 +89,15 @@ export default function SessionPage() {
   }
 
   function startNew() {
+    setHistoryOpen(false);
     setMessages([]);
     setActiveSessionId(null);
+  }
+
+  function applyStarter(q: string) {
+    setHistoryOpen(false);
+    setInput(q);
+    inputRef.current?.focus();
   }
 
   async function handleSend() {
@@ -291,7 +116,7 @@ export default function SessionPage() {
 
     try {
       if (activeSessionId) {
-        // Follow-up — Strategist only, ~15s
+        // Follow-up — Strategist only
         const data = await addFollowup(activeSessionId, question);
         if (data.turn?.strategist_output) {
           const aiMsg: Message = {
@@ -303,7 +128,7 @@ export default function SessionPage() {
           setMessages((prev) => [...prev, aiMsg]);
         }
       } else {
-        // New session — full 6-agent pipeline, ~40s
+        // New session — full 6-agent pipeline
         const data = await startSession(question);
         setActiveSessionId(data.session_id);
 
@@ -323,7 +148,7 @@ export default function SessionPage() {
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, aiMsg]);
-          // Prepend new session to sidebar list
+          // Prepend new session to history list
           setSessions((prev) => [
             {
               id: data.session_id,
@@ -351,106 +176,77 @@ export default function SessionPage() {
     }
   }
 
+  const historyProps = {
+    sessions,
+    activeSessionId,
+    showStarters: messages.length === 0 && !activeSessionId,
+    starters: STARTER_QUESTIONS,
+    onNew: startNew,
+    onSelect: loadSessionMessages,
+    onStarter: applyStarter,
+  };
+
   return (
-    <div className="flex h-screen">
-      {/* Session history sidebar */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-gray-100 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-semibold text-gray-900">Sessions</span>
-          </div>
-          <button
-            onClick={startNew}
-            className="flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
-          >
-            <Plus className="h-3 w-3" />
-            New
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-2 py-2">
-          {messages.length === 0 && !activeSessionId && (
-            <div className="space-y-1 mb-4">
-              <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                Try asking…
-              </p>
-              {STARTER_QUESTIONS.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => setInput(q)}
-                  className="w-full rounded-xl px-3 py-2.5 text-left text-xs text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {sessions.length > 0 && (
-            <>
-              <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                History
-              </p>
-              {sessions.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => loadSessionMessages(s.id)}
-                  className={cn(
-                    "flex w-full items-start gap-2 rounded-xl px-3 py-2.5 text-left transition-all",
-                    activeSessionId === s.id
-                      ? "bg-amber-50 text-amber-700"
-                      : "text-gray-600 hover:bg-gray-50"
-                  )}
-                >
-                  <MessageSquare
-                    className={cn(
-                      "mt-0.5 h-3.5 w-3.5 shrink-0",
-                      activeSessionId === s.id ? "text-amber-600" : "text-gray-400"
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium leading-snug line-clamp-2">
-                      {s.original_question}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-gray-400">{formatDate(s.created_at)}</p>
-                  </div>
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-
-        <div className="border-t border-gray-100 px-4 py-3">
-          <p className="text-[10px] text-gray-400">
-            <span className="font-semibold text-gray-600">{sessions.length}</span> sessions this month
-          </p>
-        </div>
+    <div className="relative flex h-[calc(100dvh-3.5rem)] lg:h-screen">
+      {/* Session history — desktop */}
+      <aside className="hidden w-64 shrink-0 border-r border-gray-200/70 md:block">
+        <SessionHistory {...historyProps} />
       </aside>
 
+      {/* Session history — mobile overlay */}
+      <AnimatePresence>
+        {historyOpen && (
+          <>
+            <motion.div
+              className="absolute inset-0 z-20 bg-ink/30 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setHistoryOpen(false)}
+            />
+            <motion.aside
+              className="absolute inset-y-0 left-0 z-30 w-72 max-w-[85vw] shadow-lift md:hidden"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 40 }}
+            >
+              <button
+                onClick={() => setHistoryOpen(false)}
+                className="btn-ghost absolute right-12 top-2 z-10 p-2"
+                aria-label="Close history"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <SessionHistory {...historyProps} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Chat area */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <div className="flex h-14 items-center justify-between border-b border-gray-100 bg-white px-6">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Strategy Session</span>
+        <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-gray-200/70 bg-white px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="btn-ghost -ml-2 p-2 md:hidden"
+              aria-label="Open session history"
+            >
+              <History className="h-4 w-4" />
+            </button>
+            <h1 className="shrink-0 font-display text-sm font-semibold text-ink">Strategy session</h1>
             {activeSessionId && messages.length > 0 && (
               <>
-                <ChevronRight className="h-4 w-4 text-gray-300" />
-                <span className="text-sm text-gray-500 truncate max-w-xs">
+                <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                <span className="truncate text-sm text-gray-500">
                   {(messages[0]?.content as string) ?? "Session"}
                 </span>
               </>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-              <Clock className="h-3.5 w-3.5" />
-              &lt;45s first response
-            </div>
-            <Badge variant="green" dot>Live</Badge>
-          </div>
+          <Badge variant="outline" className="shrink-0">Prototype</Badge>
         </div>
 
         {/* Messages */}
@@ -460,61 +256,62 @@ export default function SessionPage() {
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
-                <MessageSquare className="h-7 w-7 text-brand-600" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">Ask the strategist</h2>
-              <p className="mt-2 max-w-sm text-sm text-gray-500 leading-relaxed">
-                Bring a strategic question about your business. You'll get a full
-                analysis with market context, a recommendation with reasoning, and
-                alternatives — in under 45 seconds.
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" as const }}
+              className="flex min-h-full flex-col items-center justify-center px-4 py-10 text-center sm:px-8"
+            >
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 shadow-violet">
+                <Sparkles className="h-7 w-7 text-lime-300" />
+              </span>
+              <h2 className="mt-5 font-display text-2xl font-semibold text-ink">
+                What&apos;s your next move?
+              </h2>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500">
+                This prototype demonstrates the planned decision workflow. Once configured, Claude is
+                intended to analyse selected evidence and draft a recommendation for human review; this
+                demo does not promise a response time or live analysis.
               </p>
-              <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-md">
+              <div className="mt-8 grid w-full max-w-2xl gap-3 sm:grid-cols-3">
                 {STARTER_QUESTIONS.slice(0, 3).map((q) => (
                   <button
                     key={q}
-                    onClick={() => setInput(q)}
-                    className="card-hover flex items-center justify-between px-4 py-3 text-sm text-gray-700 text-left"
+                    onClick={() => applyStarter(q)}
+                    className="card-hover flex flex-col items-start justify-between gap-3 p-4 text-left text-sm text-gray-700"
                   >
                     {q}
-                    <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
+                    <span className="flex items-center gap-1 text-xs font-semibold text-brand-600">
+                      Ask this <ChevronRight className="h-3.5 w-3.5" />
+                    </span>
                   </button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="mx-auto max-w-2xl space-y-6 p-6">
+            <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6">
               {messages.map((msg) => (
                 <div key={msg.id}>
                   {msg.role === "user" ? (
                     <div className="flex justify-end">
-                      <div className="max-w-md rounded-2xl rounded-tr-md bg-brand-600 px-4 py-3 text-sm text-white leading-relaxed shadow-sm">
+                      <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-brand-600 px-4 py-3 text-sm leading-relaxed text-white shadow-sm sm:max-w-md">
                         {msg.content as string}
                       </div>
                     </div>
                   ) : typeof msg.content === "string" ? (
                     <div className="flex gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 shadow-sm">
-                        <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
-                      </div>
-                      <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-700 leading-relaxed">
+                      <StrategistAvatar />
+                      <div className="rounded-2xl rounded-tl-md border border-gray-200 bg-white px-4 py-3 text-sm leading-relaxed text-gray-700">
                         {msg.content}
                       </div>
                     </div>
                   ) : (
                     <div className="flex gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 shadow-sm">
-                        <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
-                      </div>
-                      <div className="flex-1 min-w-0">
+                      <StrategistAvatar />
+                      <div className="min-w-0 flex-1">
                         <div className="mb-2 flex items-center gap-2">
-                          <span className="text-xs font-semibold text-gray-900">
-                            LocalPulse Strategist
-                          </span>
-                          <Badge variant="brand" className="text-[10px]">
-                            6 agents
-                          </Badge>
+                          <span className="font-display text-sm font-semibold text-ink">Agenzy Strategist</span>
+                          <Badge variant="brand" className="text-[10px]">Draft for review</Badge>
                         </div>
                         <StrategyCard output={msg.content as StrategyOutput} />
                       </div>
@@ -525,12 +322,8 @@ export default function SessionPage() {
 
               {isThinking && (
                 <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600">
-                    <Loader2 className="h-4 w-4 text-white animate-spin" />
-                  </div>
-                  <div className="flex items-center">
-                    <ThinkingIndicator />
-                  </div>
+                  <StrategistAvatar busy />
+                  <ThinkingIndicator />
                 </div>
               )}
 
@@ -540,11 +333,11 @@ export default function SessionPage() {
         </div>
 
         {/* Input bar */}
-        <div className="border-t border-gray-100 bg-white p-4">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex items-end gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/10 transition-all">
-              <Users className="mb-1 h-4 w-4 shrink-0 text-gray-400" />
+        <div className="shrink-0 border-t border-gray-200/70 bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <div className="mx-auto max-w-3xl">
+            <div className="flex items-end gap-3 rounded-2xl border border-gray-300 bg-white p-2.5 pl-4 shadow-sm transition-all focus-within:border-brand-600 focus-within:ring-4 focus-within:ring-brand-600/15">
               <textarea
+                ref={inputRef}
                 rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -555,25 +348,27 @@ export default function SessionPage() {
                   }
                 }}
                 placeholder="Ask a strategic question about your business…"
-                className="flex-1 resize-none bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
+                aria-label="Strategic question"
+                className="flex-1 resize-none bg-transparent py-1.5 text-base text-ink placeholder-gray-400 focus:outline-none sm:text-sm"
                 disabled={isThinking}
                 style={{ maxHeight: "120px" }}
               />
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isThinking}
+                aria-label="Send question"
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-control transition-all",
                   input.trim() && !isThinking
-                    ? "bg-brand-600 text-white hover:bg-brand-700 shadow-sm"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    ? "bg-brand-600 text-white shadow-sm hover:bg-brand-700"
+                    : "cursor-not-allowed bg-gray-100 text-gray-400"
                 )}
               >
-                <Send className="h-4 w-4" />
+                {isThinking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </div>
-            <p className="mt-2 text-center text-[10px] text-gray-400">
-              First response in &lt;45s · Follow-ups in &lt;15s · Session context preserved
+            <p className="mt-2 hidden text-center text-[11px] text-gray-400 sm:block">
+              Follow-ups keep the session context · Recommendations are drafts for your review
             </p>
           </div>
         </div>

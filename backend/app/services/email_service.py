@@ -70,7 +70,7 @@ async def send_weekly_brief_email(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {settings.resend_api_key}"},
                 json={
-                    "from": f"LocalPulse AI <{settings.email_from}>",
+                    "from": f"{settings.email_from_name} <{settings.email_from}>",
                     "to": [to_email],
                     "subject": f"Your Weekly Strategic Brief — Week of {week_of}",
                     "html": brief_html,

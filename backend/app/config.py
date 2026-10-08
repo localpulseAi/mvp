@@ -17,8 +17,8 @@ class Settings(BaseSettings):
 
     # Email
     resend_api_key: Optional[str] = None
-    email_from: str = "noreply@localpulse.ai"
-    email_from_name: str = "LocalPulse AI"
+    email_from: str = "hello@agenzy.online"
+    email_from_name: str = "Agenzy"
 
     # External APIs
     google_places_api_key: Optional[str] = None

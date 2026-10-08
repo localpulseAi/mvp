@@ -3,28 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Zap,
-  CheckCircle2,
-  ArrowRight,
-  ArrowLeft,
-  MapPin,
-  Search,
-  Plus,
-  X,
-  Loader2,
-  Star,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/Badge";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, ArrowLeft, MapPin, Loader2, Lock } from "lucide-react";
 import { discoverCompetitors, updateProfile, addCompetitor, type DiscoveryCandidate } from "@/lib/api";
+import { Logo } from "@/components/brand/Logo";
+import { Stepper, MobileStepper, type StepDef } from "@/components/onboarding/Stepper";
+import { OptionCard } from "@/components/onboarding/OptionCard";
+import { InfoNote } from "@/components/onboarding/InfoNote";
+import { CompetitorStep } from "@/components/onboarding/CompetitorStep";
 
-const STEPS = [
-  { id: 1, label: "Business", title: "Your business basics" },
-  { id: 2, label: "Brand", title: "What you sell & your voice" },
-  { id: 3, label: "Costs", title: "Cost structure" },
-  { id: 4, label: "Ops", title: "Capacity & operations" },
-  { id: 5, label: "Competitors", title: "Competitor Discovery" },
+const STEPS: StepDef[] = [
+  { id: 1, label: "Business",    title: "Your business basics",       description: "Name, location, category" },
+  { id: 2, label: "Brand",       title: "What you sell and your voice", description: "Offer, personality, goal" },
+  { id: 3, label: "Costs",       title: "Cost structure",             description: "Ranges only, never exact" },
+  { id: 4, label: "Operations",  title: "Capacity and operations",    description: "Hours, staff, capacity" },
+  { id: 5, label: "Competitors", title: "Competitor discovery",       description: "Who to keep an eye on" },
 ];
 
 const NICHES = [
@@ -53,7 +46,6 @@ const FIXED_COST_BANDS = [
   { label: "Over $40k/mo", value: "gt40k" },
 ];
 
-
 type FormData = {
   businessName: string;
   address: string;
@@ -70,6 +62,16 @@ type FormData = {
   staffSize: string;
   peakHours: string;
 };
+
+function Field({ id, label, hint, children }: { id: string; label: React.ReactNode; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className="label">{label}</label>
+      {hint && <p className="-mt-0.5 mb-2 text-xs text-gray-500">{hint}</p>}
+      {children}
+    </div>
+  );
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -114,7 +116,7 @@ export default function OnboardingPage() {
 
   async function runDiscovery() {
     if (!form.address || !form.niche) {
-      setDiscoverError("Please complete your address and niche in Step 1 first.");
+      setDiscoverError("Please complete your address and category in Step 1 first.");
       return;
     }
     setDiscoverLoading(true);
@@ -177,496 +179,319 @@ export default function OnboardingPage() {
     }
   }
 
-  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
+  const current = STEPS[step - 1];
+  const isLast = step === STEPS.length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-canvas">
       {/* Top bar */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center border-b border-gray-100 bg-white px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600">
-            <Zap className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-          </div>
-          <span className="text-sm font-bold text-gray-900">LocalPulse AI</span>
-        </Link>
-        <div className="ml-auto text-xs text-gray-400">
-          Step {step} of {STEPS.length}
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200/70 bg-white/90 backdrop-blur">
+        <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
+          <Link href="/" aria-label="Agenzy home">
+            <Logo height={30} priority />
+          </Link>
+          <span className="tabular ml-auto text-xs font-medium text-gray-500">
+            Step {step} of {STEPS.length}
+          </span>
+        </div>
+        <div className="px-4 pb-3 sm:px-6 md:hidden">
+          <MobileStepper steps={STEPS} current={step} />
         </div>
       </header>
 
-      <div className="flex min-h-screen pt-14">
-        {/* Left step nav */}
-        <aside className="hidden w-56 shrink-0 border-r border-gray-100 bg-white md:flex flex-col pt-8 pb-6 px-4">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400 px-2">
-            Setup progress
+      <div className="flex min-h-screen pt-[88px] md:pt-16">
+        {/* Desktop step nav */}
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-gray-200/70 bg-white px-4 pb-6 pt-8 md:flex">
+          <p className="mb-4 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+            Set up your workspace
           </p>
-          <ol className="space-y-1">
-            {STEPS.map((s) => {
-              const done = s.id < step;
-              const active = s.id === step;
-              return (
-                <li key={s.id}>
-                  <button
-                    onClick={() => s.id < step && setStep(s.id)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-left transition-all",
-                      active
-                        ? "bg-brand-50 text-brand-700 font-semibold"
-                        : done
-                        ? "text-gray-600 hover:bg-gray-50"
-                        : "text-gray-400 cursor-default"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
-                        active
-                          ? "border-brand-600 bg-brand-600 text-white"
-                          : done
-                          ? "border-emerald-500 bg-emerald-500 text-white"
-                          : "border-gray-200 text-gray-400"
-                      )}
-                    >
-                      {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : s.id}
-                    </span>
-                    <span>{s.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+          <Stepper steps={STEPS} current={step} onSelect={setStep} />
 
-          {/* Progress bar */}
-          <div className="mt-auto px-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400">Progress</span>
-              <span className="text-xs font-semibold text-brand-600">
-                {Math.round(progress)}%
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-gray-100">
-              <div
-                className="h-1.5 rounded-full bg-brand-600 transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+          <div className="mt-auto flex gap-2.5 rounded-control bg-gray-100 p-3">
+            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-500" />
+            <p className="text-[11px] leading-4 text-gray-600">
+              Your answers stay private and are only used to tailor your recommendations.
+            </p>
           </div>
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 flex flex-col items-center justify-start px-6 py-12">
-          <div className="w-full max-w-lg animate-fade-in">
-            {/* Step header */}
-            <div className="mb-8">
-              <div className="mb-2 flex items-center gap-2">
-                <Badge variant="brand">Step {step} of {STEPS.length}</Badge>
-                <span className="text-xs text-gray-400">
-                  ~{6 - step} min remaining
-                </span>
-              </div>
-              <h1 className="text-2xl font-extrabold text-gray-900">
-                {STEPS[step - 1].title}
-              </h1>
-            </div>
+        <main className="flex flex-1 justify-center px-4 pb-32 pt-8 sm:px-6 md:pb-12 md:pt-12">
+          <div className="w-full max-w-xl">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.25, ease: "easeOut" as const }}
+              >
+                {/* Step header */}
+                <div className="mb-8">
+                  <p className="eyebrow">
+                    Step {step} · {current.label}
+                  </p>
+                  {isLast && discovered ? (
+                    <h1 className="mt-2 font-display text-[28px] font-semibold leading-9 text-ink sm:text-4xl sm:leading-[44px]">
+                      <span className="highlight">Almost there!</span>
+                    </h1>
+                  ) : (
+                    <h1 className="mt-2 font-display text-[28px] font-semibold leading-9 text-ink sm:text-4xl sm:leading-[44px]">
+                      {current.title}
+                    </h1>
+                  )}
+                  <p className="mt-2 text-sm text-gray-500">
+                    {isLast && discovered
+                      ? "Pick the businesses you want Agenzy to keep an eye on, then head to your dashboard."
+                      : `About ${6 - step} min remaining`}
+                  </p>
+                </div>
 
-            {/* Step 1 — Business basics */}
-            {step === 1 && (
-              <div className="space-y-5">
-                <div>
-                  <label className="label">Business name</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Casa Verde Calgary"
-                    value={form.businessName}
-                    onChange={(e) => update("businessName", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">Street address in Calgary</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      className="input pl-9"
-                      placeholder="2437 4 St SW, Calgary, AB"
-                      value={form.address}
-                      onChange={(e) => update("address", e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="label">Niche category</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {NICHES.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => update("niche", n)}
-                        className={cn(
-                          "rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-all",
-                          form.niche === n
-                            ? "border-brand-600 bg-brand-50 text-brand-700"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                        )}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Instagram handle</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="@yourrestaurant"
-                      value={form.instagram}
-                      onChange={(e) => update("instagram", e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Facebook page</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="yourrestaurant"
-                      value={form.facebook}
-                      onChange={(e) => update("facebook", e.target.value)}
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400">
-                  Integrations are optional and read-only. You can add them later in settings.
-                </p>
-              </div>
-            )}
-
-            {/* Step 2 — Brand & description */}
-            {step === 2 && (
-              <div className="space-y-5">
-                <div>
-                  <label className="label">What do you sell?</label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Describe your food, vibe, and customer experience in plain language.
-                  </p>
-                  <textarea
-                    rows={4}
-                    className="input resize-none"
-                    placeholder="We're a Mexican-inspired casual restaurant. Known for our tacos, weekend brunch, and a relaxed neighbourhood feel. Loyal weekday lunch crowd plus strong Friday/Saturday dinner..."
-                    value={form.description}
-                    onChange={(e) => update("description", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">Brand voice</label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    How do you talk to customers? What's the personality?
-                  </p>
-                  <textarea
-                    rows={3}
-                    className="input resize-none"
-                    placeholder="Warm, unpretentious, neighbourhood-first. We don't take ourselves too seriously. Friendly like a local spot should be..."
-                    value={form.brandVoice}
-                    onChange={(e) => update("brandVoice", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">
-                    Your most important goal this quarter{" "}
-                    <span className="text-gray-400 font-normal">(optional)</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    className="input resize-none"
-                    placeholder="Grow midday lunch covers by 15% and improve Google review rating from 4.1 to 4.5..."
-                    value={form.quarterGoal}
-                    onChange={(e) => update("quarterGoal", e.target.value)}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Used by the Strategist agent to prioritise recommendations.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3 — Cost structure */}
-            {step === 3 && (
-              <div className="space-y-6">
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-                  <p className="text-xs font-semibold text-amber-800">
-                    Why we ask this
-                  </p>
-                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                    The Financial Sense-Check agent uses cost ranges to tell you whether a proposed promotion or move would meaningfully compress your margin. We never store exact figures — ranges only.
-                  </p>
-                </div>
-                <div>
-                  <label className="label">Approximate gross margin</label>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Food & beverage revenue minus cost of goods
-                  </p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {MARGIN_BANDS.map((b) => (
-                      <button
-                        key={b.value}
-                        type="button"
-                        onClick={() => update("grossMarginBand", b.value)}
-                        className={cn(
-                          "flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium transition-all",
-                          form.grossMarginBand === b.value
-                            ? "border-brand-600 bg-brand-50 text-brand-700"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                        )}
-                      >
-                        {b.label}
-                        {form.grossMarginBand === b.value && (
-                          <CheckCircle2 className="h-4 w-4 text-brand-600" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="label">Monthly fixed costs (rent, labour, etc.)</label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {FIXED_COST_BANDS.map((b) => (
-                      <button
-                        key={b.value}
-                        type="button"
-                        onClick={() => update("fixedCostBand", b.value)}
-                        className={cn(
-                          "flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium transition-all",
-                          form.fixedCostBand === b.value
-                            ? "border-brand-600 bg-brand-50 text-brand-700"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                        )}
-                      >
-                        {b.label}
-                        {form.fixedCostBand === b.value && (
-                          <CheckCircle2 className="h-4 w-4 text-brand-600" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="label">Key product price range</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Lunch $14–$22 · Dinner $22–$38"
-                    value={form.priceRange}
-                    onChange={(e) => update("priceRange", e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Step 4 — Operations */}
-            {step === 4 && (
-              <div className="space-y-5">
-                <div>
-                  <label className="label">Peak capacity (covers per service)</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. 60 covers per service"
-                    value={form.capacity}
-                    onChange={(e) => update("capacity", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">Front-of-house staff size</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. 8–12 per shift"
-                    value={form.staffSize}
-                    onChange={(e) => update("staffSize", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="label">Peak operating hours</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. Tue–Fri 11am–3pm, Thu–Sat 5pm–10pm"
-                    value={form.peakHours}
-                    onChange={(e) => update("peakHours", e.target.value)}
-                  />
-                </div>
-                <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
-                    Why this matters
-                  </p>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    The Timing Analyst uses your operating hours to flag
-                    conflicts — for example, a promo during a period you're
-                    already at capacity won't improve revenue and creates service
-                    strain.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5 — Competitor Discovery */}
-            {step === 5 && (
-              <div className="space-y-5">
-                {!discovered ? (
-                  <div className="text-center py-8">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
-                      <Search className="h-7 w-7 text-brand-600" />
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900">
-                      Find your competitors
-                    </h3>
-                    <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                      We'll scan businesses near your location and rank
-                      candidates across 5 dimensions: proximity, scale,
-                      geography, product type, and positioning.
-                    </p>
-                    {discoverError && (
-                      <p className="mt-3 text-xs text-red-600">{discoverError}</p>
-                    )}
-                    <button
-                      onClick={runDiscovery}
-                      disabled={discoverLoading}
-                      className="btn-primary mt-6"
-                    >
-                      {discoverLoading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Scanning…
-                        </>
-                      ) : (
-                        <>
-                          <Search className="h-4 w-4" />
-                          Run Competitor Discovery
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {candidates.length} candidates found
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Select up to 5 competitors to track
-                        </p>
+                {/* Step 1 — Business basics */}
+                {step === 1 && (
+                  <div className="space-y-6">
+                    <Field id="businessName" label="Business name">
+                      <input
+                        id="businessName"
+                        type="text"
+                        className="input"
+                        placeholder="Casa Verde Kitchen"
+                        value={form.businessName}
+                        onChange={(e) => update("businessName", e.target.value)}
+                      />
+                    </Field>
+                    <Field id="address" label="Street address">
+                      <div className="relative">
+                        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                          id="address"
+                          type="text"
+                          className="input pl-9"
+                          placeholder="2437 4 St SW, Calgary, AB"
+                          value={form.address}
+                          onChange={(e) => update("address", e.target.value)}
+                        />
                       </div>
-                      <Badge variant="brand" dot>
-                        {selectedCompetitors.length}/5 selected
-                      </Badge>
+                    </Field>
+                    <div>
+                      <p className="label" id="niche-label">Business category</p>
+                      <div role="radiogroup" aria-labelledby="niche-label" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {NICHES.map((n) => (
+                          <OptionCard key={n} selected={form.niche === n} onClick={() => update("niche", n)}>
+                            {n}
+                          </OptionCard>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      {candidates.map((c) => {
-                        const selected = selectedCompetitors.includes(c.place_id);
-                        const disabled =
-                          !selected && selectedCompetitors.length >= 5;
-                        return (
-                          <button
-                            key={c.place_id}
-                            type="button"
-                            onClick={() => !disabled && toggleCompetitor(c.place_id)}
-                            className={cn(
-                              "flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-all",
-                              selected
-                                ? "border-brand-600 bg-brand-50"
-                                : disabled
-                                ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                                : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                            )}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field id="instagram" label="Instagram handle">
+                        <input
+                          id="instagram"
+                          type="text"
+                          className="input"
+                          placeholder="@yourbusiness"
+                          value={form.instagram}
+                          onChange={(e) => update("instagram", e.target.value)}
+                        />
+                      </Field>
+                      <Field id="facebook" label="Facebook page">
+                        <input
+                          id="facebook"
+                          type="text"
+                          className="input"
+                          placeholder="yourbusiness"
+                          value={form.facebook}
+                          onChange={(e) => update("facebook", e.target.value)}
+                        />
+                      </Field>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Social accounts are optional and read-only. You can add them later in settings.
+                    </p>
+                  </div>
+                )}
+
+                {/* Step 2 — Brand & description */}
+                {step === 2 && (
+                  <div className="space-y-6">
+                    <Field id="description" label="What do you sell?" hint="Describe your offer, atmosphere, and customer experience in plain language.">
+                      <textarea
+                        id="description"
+                        rows={4}
+                        className="input resize-none"
+                        placeholder="We're a Mexican-inspired casual restaurant known for tacos, weekend brunch, and a relaxed neighbourhood feel. Loyal weekday lunch crowd plus busy Friday and Saturday dinners."
+                        value={form.description}
+                        onChange={(e) => update("description", e.target.value)}
+                      />
+                    </Field>
+                    <Field id="brandVoice" label="Brand voice" hint="How do you talk to customers? What's the personality?">
+                      <textarea
+                        id="brandVoice"
+                        rows={3}
+                        className="input resize-none"
+                        placeholder="Warm, unpretentious, neighbourhood-first. We don't take ourselves too seriously."
+                        value={form.brandVoice}
+                        onChange={(e) => update("brandVoice", e.target.value)}
+                      />
+                    </Field>
+                    <Field
+                      id="quarterGoal"
+                      label={<>Your most important goal this quarter <span className="font-normal text-gray-400">(optional)</span></>}
+                    >
+                      <textarea
+                        id="quarterGoal"
+                        rows={2}
+                        className="input resize-none"
+                        placeholder="Fill more weekday lunch tables and get more recent Google reviews."
+                        value={form.quarterGoal}
+                        onChange={(e) => update("quarterGoal", e.target.value)}
+                      />
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Agenzy uses this to prioritise which moves to suggest first.
+                      </p>
+                    </Field>
+                  </div>
+                )}
+
+                {/* Step 3 — Cost structure */}
+                {step === 3 && (
+                  <div className="space-y-8">
+                    <InfoNote title="Why we ask this">
+                      Cost ranges help Agenzy check whether a promotion would meaningfully squeeze your
+                      margin before suggesting it. We never store exact figures, only ranges.
+                    </InfoNote>
+                    <div>
+                      <p className="label" id="margin-label">Approximate gross margin</p>
+                      <p className="-mt-0.5 mb-3 text-xs text-gray-500">Revenue minus cost of goods sold</p>
+                      <div role="radiogroup" aria-labelledby="margin-label" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {MARGIN_BANDS.map((b) => (
+                          <OptionCard
+                            key={b.value}
+                            selected={form.grossMarginBand === b.value}
+                            onClick={() => update("grossMarginBand", b.value)}
+                            className="tabular"
                           >
-                            <div
-                              className={cn(
-                                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all",
-                                selected
-                                  ? "border-brand-600 bg-brand-600"
-                                  : "border-gray-300"
-                              )}
-                            >
-                              {selected && (
-                                <CheckCircle2 className="h-3.5 w-3.5 text-white" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-gray-900">
-                                  {c.name}
-                                </span>
-                                <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600">
-                                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                                  {Math.round(c.composite_score * 10)}% match
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-500 truncate">
-                                {c.address}
-                              </p>
-                              {c.reasoning && (
-                                <p className="mt-0.5 text-xs text-gray-600">
-                                  {c.reasoning}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                            {b.label}
+                          </OptionCard>
+                        ))}
+                      </div>
                     </div>
-                    <button className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700">
-                      <Plus className="h-4 w-4" />
-                      Add a competitor not in this list
-                    </button>
-                  </>
+                    <div>
+                      <p className="label" id="fixed-label">Monthly fixed costs (rent, labour, etc.)</p>
+                      <div role="radiogroup" aria-labelledby="fixed-label" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {FIXED_COST_BANDS.map((b) => (
+                          <OptionCard
+                            key={b.value}
+                            selected={form.fixedCostBand === b.value}
+                            onClick={() => update("fixedCostBand", b.value)}
+                            className="tabular"
+                          >
+                            {b.label}
+                          </OptionCard>
+                        ))}
+                      </div>
+                    </div>
+                    <Field id="priceRange" label="Key product price range">
+                      <input
+                        id="priceRange"
+                        type="text"
+                        className="input"
+                        placeholder="Lunch $14–$22 · Dinner $22–$38"
+                        value={form.priceRange}
+                        onChange={(e) => update("priceRange", e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                )}
+
+                {/* Step 4 — Operations */}
+                {step === 4 && (
+                  <div className="space-y-6">
+                    <Field id="capacity" label="Peak capacity">
+                      <input
+                        id="capacity"
+                        type="text"
+                        className="input"
+                        placeholder="e.g. 60 covers per service"
+                        value={form.capacity}
+                        onChange={(e) => update("capacity", e.target.value)}
+                      />
+                    </Field>
+                    <Field id="staffSize" label="Front-of-house staff size">
+                      <input
+                        id="staffSize"
+                        type="text"
+                        className="input"
+                        placeholder="e.g. 8–12 per shift"
+                        value={form.staffSize}
+                        onChange={(e) => update("staffSize", e.target.value)}
+                      />
+                    </Field>
+                    <Field id="peakHours" label="Peak operating hours">
+                      <input
+                        id="peakHours"
+                        type="text"
+                        className="input"
+                        placeholder="e.g. Tue–Fri 11am–3pm, Thu–Sat 5pm–10pm"
+                        value={form.peakHours}
+                        onChange={(e) => update("peakHours", e.target.value)}
+                      />
+                    </Field>
+                    <InfoNote title="Why this matters">
+                      Your hours help Agenzy flag timing conflicts. For example, a promotion during a
+                      period when you&apos;re already full adds strain on staff without adding revenue.
+                    </InfoNote>
+                  </div>
+                )}
+
+                {/* Step 5 — Competitor Discovery */}
+                {step === 5 && (
+                  <CompetitorStep
+                    discovered={discovered}
+                    loading={discoverLoading}
+                    error={discoverError}
+                    candidates={candidates}
+                    selected={selectedCompetitors}
+                    onDiscover={runDiscovery}
+                    onToggle={toggleCompetitor}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Navigation — sticky footer on mobile, inline on desktop */}
+            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200/70 bg-white/95 px-4 py-3 backdrop-blur md:static md:mt-10 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+                {step > 1 ? (
+                  <button onClick={() => setStep((s) => s - 1)} className="btn-secondary">
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                {!isLast ? (
+                  <button onClick={() => setStep((s) => s + 1)} className="btn-primary">
+                    Continue
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button onClick={finish} disabled={saving} className="btn-primary">
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Setting up…
+                      </>
+                    ) : (
+                      <>
+                        Go to dashboard
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
-            )}
-
-            {/* Navigation buttons */}
-            <div className="mt-8 flex items-center justify-between">
-              {step > 1 ? (
-                <button
-                  onClick={() => setStep((s) => s - 1)}
-                  className="btn-secondary gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </button>
-              ) : (
-                <div />
-              )}
-
-              {step < STEPS.length ? (
-                <button
-                  onClick={() => setStep((s) => s + 1)}
-                  className="btn-primary"
-                >
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={finish}
-                  disabled={saving}
-                  className="btn-amber"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Setting up…
-                    </>
-                  ) : (
-                    <>
-                      Go to dashboard
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
-              )}
             </div>
           </div>
         </main>

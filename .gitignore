@@ -36,3 +36,7 @@ plan/*.docx
 
 # Secret keys — never commit
 secrets/
+
+# Local only
+mcp.txt
+*.tsbuildinfo

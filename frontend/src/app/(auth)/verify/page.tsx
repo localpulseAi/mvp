@@ -3,8 +3,16 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Zap, MailCheck, ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { MailCheck, ArrowLeft, RefreshCw, Loader2, Link2Off, Info } from "lucide-react";
 import { verifyToken, requestMagicLink } from "@/lib/api";
+import { AuthShell } from "@/components/auth/AuthShell";
+
+const fade = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.35, ease: "easeOut" as const },
+};
 
 function VerifyContent() {
   const searchParams = useSearchParams();
@@ -46,122 +54,108 @@ function VerifyContent() {
   // Token present — show verifying spinner or error
   if (token) {
     return (
-      <main className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="card p-8 text-center">
-            {verifying ? (
-              <>
-                <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-brand-600" />
-                <h1 className="text-xl font-bold text-gray-900">Signing you in…</h1>
-                <p className="mt-2 text-sm text-gray-500">Just a moment.</p>
-              </>
-            ) : (
-              <>
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100">
-                  <ArrowLeft className="h-6 w-6 text-red-600" />
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">Link expired</h1>
-                <p className="mt-2 text-sm text-gray-500">{verifyError}</p>
-                <Link href="/login" className="btn-primary mt-6 inline-flex">
-                  Back to login
-                </Link>
-              </>
-            )}
+      <motion.div {...fade} className="card p-6 text-center sm:p-8">
+        {verifying ? (
+          <div role="status" aria-live="polite">
+            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-brand-600" />
+            <h1 className="font-display text-xl font-semibold text-ink">Signing you in…</h1>
+            <p className="mt-2 text-sm text-gray-500">Just a moment.</p>
           </div>
-        </div>
-      </main>
+        ) : (
+          <>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-control bg-red-100">
+              <Link2Off className="h-6 w-6 text-red-600" />
+            </div>
+            <h1 className="font-display text-xl font-semibold text-ink">Link expired</h1>
+            <p className="mt-2 text-sm leading-6 text-gray-500">{verifyError}</p>
+            <Link href="/login" className="btn-primary mt-6">
+              Back to sign in
+            </Link>
+          </>
+        )}
+      </motion.div>
     );
   }
 
   // No token — show "check your inbox"
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="card p-8 text-center">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
-            <MailCheck className="h-7 w-7 text-emerald-600" />
-          </div>
-
-          <h1 className="text-2xl font-extrabold text-gray-900">
-            Check your inbox
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-gray-500">
-            We sent a sign-in link to{" "}
-            <span className="font-semibold text-gray-900">{email}</span>
-            . Click the link in the email to continue.
-          </p>
-
-          <div className="mt-6 rounded-xl bg-brand-50 p-4">
-            <p className="text-xs text-brand-700 leading-relaxed">
-              <span className="font-semibold">Can't find it?</span> Check your
-              spam folder. The link expires in 15 minutes.
-            </p>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <button
-              onClick={handleResend}
-              disabled={resent}
-              className="btn-secondary w-full justify-center py-2.5 text-sm"
-            >
-              <RefreshCw className={`h-4 w-4 ${resent ? "animate-spin" : ""}`} />
-              {resent ? "Link resent!" : "Resend link"}
-            </button>
-
-            <Link
-              href="/login"
-              className="flex items-center justify-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Use a different email
-            </Link>
-          </div>
+    <motion.div {...fade}>
+      <div className="card p-6 text-center sm:p-8">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-300">
+          <MailCheck className="h-7 w-7 text-ink" />
         </div>
 
-        {/* Dev shortcut - remove in production */}
-        <div className="mt-4 card p-4 border-dashed">
-          <p className="text-xs font-semibold text-gray-500 text-center mb-2">
-            DEV SHORTCUT
+        <h1 className="font-display text-[28px] font-semibold leading-9 text-ink">
+          Check your inbox
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-gray-500">
+          We sent a sign-in link to{" "}
+          <span className="break-all font-semibold text-ink">{email}</span>. Click the link in the
+          email to continue.
+        </p>
+
+        <div className="mt-6 flex gap-3 rounded-control bg-lilac p-4 text-left">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+          <p className="text-xs leading-5 text-brand-800">
+            <span className="font-semibold">Can&apos;t find it?</span> Check your spam folder. The
+            link expires in 15 minutes.
           </p>
-          <div className="flex gap-2">
-            <Link
-              href="/onboarding"
-              className="flex-1 rounded-lg bg-gray-100 py-2 text-center text-xs font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-            >
-              Go to Onboarding
-            </Link>
-            <Link
-              href="/dashboard"
-              className="flex-1 rounded-lg bg-brand-100 py-2 text-center text-xs font-medium text-brand-700 hover:bg-brand-200 transition-colors"
-            >
-              Go to Dashboard
-            </Link>
-          </div>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <button
+            onClick={handleResend}
+            disabled={resent}
+            className="btn-secondary w-full"
+            aria-live="polite"
+          >
+            <RefreshCw className={`h-4 w-4 ${resent ? "animate-spin" : ""}`} />
+            {resent ? "Link resent" : "Resend link"}
+          </button>
+
+          <Link href="/login" className="btn-ghost w-full">
+            <ArrowLeft className="h-4 w-4" />
+            Use a different email
+          </Link>
         </div>
       </div>
-    </main>
+
+      {/* Dev shortcut - remove in production */}
+      <div className="mt-4 rounded-2xl border border-dashed border-gray-300 p-4">
+        <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+          Dev shortcut
+        </p>
+        <div className="flex gap-2">
+          <Link
+            href="/onboarding"
+            className="flex-1 rounded-control bg-gray-100 py-2 text-center text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
+          >
+            Go to onboarding
+          </Link>
+          <Link
+            href="/dashboard"
+            className="flex-1 rounded-control bg-lilac py-2 text-center text-xs font-medium text-brand-700 transition-colors hover:bg-brand-200"
+          >
+            Go to dashboard
+          </Link>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
 export default function VerifyPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="flex h-16 items-center px-6 border-b border-gray-100 bg-white">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 shadow-sm">
-            <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
+    <AuthShell>
+      <Suspense
+        fallback={
+          <div className="flex justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
           </div>
-          <span className="text-sm font-bold text-gray-900 tracking-tight">
-            LocalPulse
-          </span>
-          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-            AI
-          </span>
-        </Link>
-      </header>
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" /></div>}>
+        }
+      >
         <VerifyContent />
       </Suspense>
-    </div>
+    </AuthShell>
   );
 }

@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Zap, Mail, ArrowRight, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Mail, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { requestMagicLink } from "@/lib/api";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,100 +36,96 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Nav */}
-      <header className="flex h-16 items-center px-6 border-b border-gray-100 bg-white">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 shadow-sm">
-            <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
+    <AuthShell>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" as const }}
+      >
+        <div className="card p-6 sm:p-8">
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-control bg-lilac">
+            <Mail className="h-6 w-6 text-brand-600" />
           </div>
-          <span className="text-sm font-bold text-gray-900 tracking-tight">LocalPulse</span>
-          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">AI</span>
-        </Link>
-      </header>
 
-      {/* Main */}
-      <main className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          {/* Card */}
-          <div className="card p-8">
-            {/* Icon */}
-            <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 shadow-md">
-              <Mail className="h-6 w-6 text-white" />
-            </div>
+          <p className="eyebrow">Sign in</p>
+          <h1 className="mt-2 font-display text-[28px] font-semibold leading-9 text-ink">
+            Welcome back
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Enter your email and we&apos;ll send you a sign-in link. No password needed.
+          </p>
 
-            <h1 className="text-center text-2xl font-extrabold text-gray-900">
-              Welcome back
-            </h1>
-            <p className="mt-2 text-center text-sm text-gray-500">
-              Enter your email and we'll send you a sign-in link. No password needed.
-            </p>
-
-            <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-              <div>
-                <label htmlFor="email" className="label">
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@yourrestaurant.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError("");
-                  }}
-                  className="input"
-                  disabled={loading}
-                />
-                {error && (
-                  <p className="mt-1.5 text-xs text-red-600">{error}</p>
-                )}
-              </div>
-
-              <button
-                type="submit"
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
+            <div>
+              <label htmlFor="email" className="label">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@yourbusiness.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
+                className="input"
                 disabled={loading}
-                className="btn-amber w-full justify-center py-3 text-sm"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending link…
-                  </>
-                ) : (
-                  <>
-                    Send magic link
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-6 rounded-xl bg-gray-50 p-4">
-              <p className="text-xs text-gray-500 text-center leading-relaxed">
-                By continuing, you agree to our Privacy Policy. We will never
-                sell your data. LocalPulse is in founding-member pilot — access
-                is by application only.
-              </p>
+                aria-invalid={!!error}
+                aria-describedby={error ? "email-error" : undefined}
+              />
+              {error && (
+                <p id="email-error" role="alert" className="mt-1.5 text-xs text-red-600">
+                  {error}
+                </p>
+              )}
             </div>
-          </div>
 
-          {/* Demo shortcut */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-400">
-              Want to see the dashboard first?{" "}
-              <Link
-                href="/dashboard"
-                className="font-medium text-brand-600 hover:text-brand-700 underline underline-offset-2"
-              >
-                View demo
-              </Link>
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending link…
+                </>
+              ) : (
+                <>
+                  Send magic link
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 flex gap-3 rounded-control bg-gray-100 p-4">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+            <p className="text-xs leading-5 text-gray-600">
+              By continuing, you agree to our Privacy Policy. We will never sell your data.
+              This is an Agenzy prototype demo; pilot access and launch timing have not been
+              announced.
             </p>
           </div>
         </div>
-      </main>
-    </div>
+
+        <p className="mt-6 text-center text-sm text-gray-500">
+          Want to look around first?{" "}
+          <Link
+            href="/dashboard"
+            className="font-semibold text-brand-600 underline-offset-2 hover:text-brand-700 hover:underline"
+          >
+            View the demo
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-500">
+          Trouble signing in?{" "}
+          <a
+            href="mailto:hello@agenzy.online"
+            className="font-semibold text-brand-600 underline-offset-2 hover:text-brand-700 hover:underline"
+          >
+            hello@agenzy.online
+          </a>
+        </p>
+      </motion.div>
+    </AuthShell>
   );
 }
