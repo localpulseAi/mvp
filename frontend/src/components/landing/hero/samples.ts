@@ -9,6 +9,7 @@ export const samples = {
     why: "Fill spare capacity without discounting your whole menu.",
     watch: ["Bundle orders", "Margin per sale"],
     chips: ["Weekend market · Sat", "Quiet hours · Tue–Thu"],
+    cheer: "Morning win!",
   },
   salon: {
     tab: "Salon",
@@ -19,6 +20,7 @@ export const samples = {
     why: "Use open appointments while protecting your service margins.",
     watch: ["Midweek bookings", "Repeat appointments"],
     chips: ["Open slots · Wed", "Regulars due back"],
+    cheer: "Fill those slots!",
   },
   shop: {
     tab: "Local shop",
@@ -29,6 +31,7 @@ export const samples = {
     why: "Help new visitors understand what makes your shop worth a visit.",
     watch: ["Featured item sales", "New customer visits"],
     chips: ["Street event · Sun", "New faces nearby"],
+    cheer: "Window magic!",
   },
 } as const;
 

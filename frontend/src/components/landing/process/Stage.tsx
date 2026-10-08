@@ -158,9 +158,13 @@ export function Stage({ step }: { step: StepIndex }) {
     const vp = viewportRef.current;
     const content = stageRef.current;
     if (!compact || !vp || !content) return setCameraY(0);
-    const focus = colRefs.current[step <= 1 ? 0 : step <= 3 ? 1 : 2];
+    const focus = colRefs.current[step === 0 ? 0 : step <= 3 ? 1 : 2];
     if (!focus) return;
-    const target = focus.offsetTop + focus.offsetHeight / 2 - vp.clientHeight / 2;
+    // Gather: frame the sources above with Pip low in the window, so both are visible.
+    const target =
+      step === 1
+        ? focus.offsetTop + 160 - vp.clientHeight * 0.74
+        : focus.offsetTop + focus.offsetHeight / 2 - vp.clientHeight / 2;
     setCameraY(Math.max(0, Math.min(target, content.offsetHeight - vp.clientHeight)));
   }, [step, compact, size]);
 

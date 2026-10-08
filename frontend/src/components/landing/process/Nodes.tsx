@@ -1,16 +1,17 @@
 "use client";
 
 import { forwardRef } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Loader2, MessageCircle, Store } from "lucide-react";
+import { Check, Store } from "lucide-react";
 import { ANALYSTS, INSIGHTS, PROFILE, SOURCES, type StepIndex } from "./steps";
+import { SparkAgent, type SparkState } from "./SparkAgent";
+import { Pip } from "./Pip";
 import { cn } from "@/lib/utils";
 
 const pop = { type: "spring" as const, stiffness: 420, damping: 28 };
 
 /** Analyst orbit around the core (px). Stage uses the same maths for its spokes. */
-export const ORBIT = { rx: 128, ry: 98 };
+export const ORBIT = { rx: 128, ry: 112 };
 export function analystOffset(i: number) {
   const angle = (i / ANALYSTS.length) * Math.PI * 2 - Math.PI / 2;
   return { x: Math.cos(angle) * ORBIT.rx, y: Math.sin(angle) * ORBIT.ry };
@@ -82,91 +83,63 @@ export const SourceChip = forwardRef<HTMLDivElement, { index: number; step: Step
 
 /* ── 3. Agenzy core + specialists ───────────────────────────────── */
 
-const CHIP = { w: 100, h: 28 };
+/** Mini agent footprint: 44px character + name tag. Its body centre sits on the orbit point. */
+const AGENT = { w: 84, body: 28 };
 
-function AnalystChip({ index, step, spoken }: { index: number; step: StepIndex; spoken: number }) {
+function AnalystAgent({ index, step, spoken }: { index: number; step: StepIndex; spoken: number }) {
   const a = ANALYSTS[index];
   const o = analystOffset(index);
   const visible = step >= 2;
   const said = step >= 3 || index < spoken;
   const speaking = step === 2 && index === spoken - 1;
+  const state: SparkState = speaking ? "speaking" : said ? "done" : "thinking";
   return (
     <motion.div
-      className="absolute left-1/2 top-1/2 z-20"
+      className="absolute left-1/2 top-1/2 z-20 flex flex-col items-center"
+      style={{ width: AGENT.w }}
       initial={false}
       animate={{
-        x: (visible ? o.x : o.x * 0.3) - CHIP.w / 2,
-        y: (visible ? o.y : o.y * 0.3) - CHIP.h / 2,
+        x: (visible ? o.x : o.x * 0.2) - AGENT.w / 2,
+        y: (visible ? o.y : o.y * 0.2) - AGENT.body,
         opacity: visible ? 1 : 0,
-        scale: visible ? 1 : 0.4,
+        scale: visible ? 1 : 0.2,
       }}
       transition={{ ...pop, delay: visible && step === 2 ? index * 0.1 : 0 }}
     >
-      {/* Speech bubble pops when this specialist reports in */}
-      <AnimatePresence>
-        {speaking && (
-          <motion.span
-            initial={{ opacity: 0, y: 6, scale: 0.4 }}
-            animate={{ opacity: 1, y: -2, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.6 }}
-            transition={pop}
-            className="absolute -top-5 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-ink shadow-md"
-          >
-            <MessageCircle className="h-3 w-3 text-lime-300" />
-          </motion.span>
-        )}
-      </AnimatePresence>
-      <motion.div
-        animate={speaking ? { scale: [1, 1.22, 1], rotate: [0, -6, 6, 0] } : { scale: 1, rotate: 0 }}
-        transition={{ duration: 0.5 }}
-        style={{ width: CHIP.w, height: CHIP.h }}
+      <SparkAgent spark={a.spark} color={a.color} icon={a.icon} state={state} seed={index} />
+      <span
         className={cn(
-          "flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 text-[10px] font-semibold shadow-sm transition-colors",
-          said ? "border-lime-400 bg-lime-100 text-ink" : "border-brand-200 bg-white text-brand-700"
+          "mt-1 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold shadow-sm transition-colors",
+          said ? "border-lime-400 bg-lime-100 text-ink" : "border-gray-200 bg-white text-gray-700"
         )}
       >
-        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full", a.tint)}>
-          <a.icon className="h-3 w-3" />
-        </span>
-        <span className="flex-1 truncate">{a.name}</span>
-        {said ? (
-          <Check className="h-3 w-3 shrink-0 text-lime-700" strokeWidth={3} />
-        ) : step === 2 ? (
-          <Loader2 className="h-3 w-3 shrink-0 animate-spin text-brand-400" />
-        ) : null}
-      </motion.div>
+        {a.name}
+        {said && <Check className="h-2.5 w-2.5 text-lime-700" strokeWidth={3.5} />}
+      </span>
     </motion.div>
   );
 }
 
 export const Core = forwardRef<HTMLDivElement, { step: StepIndex; spoken: number }>(function Core({ step, spoken }, ref) {
-  const thinking = step === 2;
   return (
-    <div className="relative mx-auto flex h-[250px] w-full max-w-[340px] items-center justify-center">
+    <div className="relative mx-auto flex h-[320px] w-full max-w-[340px] items-center justify-center">
       {ANALYSTS.map((a, i) => (
-        <AnalystChip key={a.name} index={i} step={step} spoken={spoken} />
+        <AnalystAgent key={a.name} index={i} step={step} spoken={spoken} />
       ))}
 
       {/* Pulsing rings */}
       {[0, 1].map((r) => (
         <motion.span
           key={r}
-          className="absolute h-24 w-24 rounded-full border-2 border-brand-300"
+          className="absolute h-32 w-32 rounded-full border-2 border-brand-300"
           animate={step >= 1 && step <= 3 ? { scale: [1, 1.9], opacity: [0.6, 0] } : { scale: 1, opacity: 0 }}
           transition={{ duration: 1.8, repeat: Infinity, delay: r * 0.9, ease: "easeOut" as const }}
         />
       ))}
 
-      <motion.div
-        ref={ref}
-        animate={{ rotate: thinking ? 360 : 0, scale: step === 3 ? [1, 1.12, 1] : 1 }}
-        transition={thinking ? { duration: 6, repeat: Infinity, ease: "linear" as const } : { duration: 0.6 }}
-        className="relative z-10 flex h-24 w-24 items-center justify-center rounded-[28px] bg-ink shadow-[0_16px_40px_-12px_rgba(33,26,53,0.6)]"
-      >
-        <motion.div animate={{ rotate: thinking ? -360 : 0 }} transition={thinking ? { duration: 6, repeat: Infinity, ease: "linear" as const } : { duration: 0.6 }}>
-          <Image src="/brand/symbol-reversed.png" alt="" width={52} height={46} className="h-auto w-[52px]" />
-        </motion.div>
-      </motion.div>
+      <div ref={ref} className="relative z-10">
+        <Pip step={step} />
+      </div>
     </div>
   );
 });

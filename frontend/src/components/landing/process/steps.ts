@@ -35,13 +35,16 @@ export const SOURCES = [
 
 /** Each specialist "says" one finding during the Analyse step. */
 export const ANALYSTS = [
-  { name: "Market",     icon: TrendingUp,  tint: "bg-sky-100 text-sky-700",         finding: "Saturday market = extra foot traffic" },
-  { name: "Rivals",     icon: Users,       tint: "bg-rose-100 text-rose-700",       finding: "Café nearby cut weekday prices 15%" },
-  { name: "Brand",      icon: Palette,     tint: "bg-violet-100 text-violet-700",   finding: "Warm and unfussy suits a bundle" },
-  { name: "Timing",     icon: Clock,       tint: "bg-amber-100 text-amber-800",     finding: "Tue–Thu, 8–11am is quiet" },
-  { name: "Margins",    icon: Calculator,  tint: "bg-emerald-100 text-emerald-700", finding: "A bundle keeps a healthy margin" },
-  { name: "Risk",       icon: ShieldAlert, tint: "bg-orange-100 text-orange-700",   finding: "Don't start a price war" },
+  { name: "Market",  icon: TrendingUp,  spark: "blue",   color: "#3B82F6", tint: "bg-blue-100 text-blue-700",       finding: "Saturday market = extra foot traffic" },
+  { name: "Rivals",  icon: Users,       spark: "red",    color: "#EF4444", tint: "bg-red-100 text-red-700",         finding: "Café nearby cut weekday prices 15%" },
+  { name: "Brand",   icon: Palette,     spark: "pink",   color: "#EC4899", tint: "bg-pink-100 text-pink-700",       finding: "Warm and unfussy suits a bundle" },
+  { name: "Timing",  icon: Clock,       spark: "yellow", color: "#EAB308", tint: "bg-yellow-100 text-yellow-800",   finding: "Tue–Thu, 8–11am is quiet" },
+  { name: "Margins", icon: Calculator,  spark: "lime",   color: "#84A02B", tint: "bg-lime-200 text-lime-800",       finding: "A bundle keeps a healthy margin" },
+  { name: "Risk",    icon: ShieldAlert, spark: "orange", color: "#F97316", tint: "bg-orange-100 text-orange-700",   finding: "Don't start a price war" },
 ];
+
+/** Pip, the main mascot, changes pose with each step (files in /public/mascots). */
+export const PIP_POSE = ["wave", "search", "think", "checklist", "celebrate"] as const;
 
 /** When (s into the Analyse step) the first specialist speaks, and the gap between them. */
 export const SPEAK = { first: 1.4, gap: 0.65 };

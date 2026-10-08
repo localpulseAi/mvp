@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { HeroPip } from "./HeroPip";
 import {
   AnimatePresence,
   animate,
@@ -151,6 +152,7 @@ export function HeroBrief() {
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
     >
+      <HeroPip sample={active} cheer={s.cheer} />
       <FloatingChip text={s.chips[0]} icon={CalendarDays} className="-left-6 top-24 lg:-left-10" delay={1.1} />
       <FloatingChip text={s.chips[1]} icon={Clock} className="-bottom-3 right-6 lg:-right-6" delay={1.4} />
 
