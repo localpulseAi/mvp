@@ -1,243 +1,209 @@
 "use client";
 
-import { useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Play, Target } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Play } from "lucide-react";
 import { Spark } from "./Spark";
-import { cn } from "@/lib/utils";
-
-const samples = {
-  cafe: {
-    tab: "Café",
-    business: "Neighbourhood café",
-    signal: "A weekend market could bring more people past your door.",
-    title: ["Make the morning stop", "an easy yes."],
-    move: "Try a coffee + pastry bundle before 11am. Keep the offer focused on your quieter hours.",
-    why: "Fill spare capacity without discounting your whole menu.",
-    watch: ["Bundle orders", "Margin per sale"],
-  },
-  salon: {
-    tab: "Salon",
-    business: "Independent salon",
-    signal: "Your midweek appointment book has room for a few more regulars.",
-    title: ["Give quiet hours", "a little attention."],
-    move: "Promote a midweek appointment reminder to existing clients. Lead with convenient times, not a blanket discount.",
-    why: "Use open appointments while protecting your service margins.",
-    watch: ["Midweek bookings", "Repeat appointments"],
-  },
-  shop: {
-    tab: "Local shop",
-    business: "Neighbourhood shop",
-    signal: "A local event could introduce new shoppers to your street.",
-    title: ["Turn passing interest", "into a reason to stop."],
-    move: "Feature a small, event-ready selection in your window and social posts. Keep the message specific and easy to spot.",
-    why: "Help new visitors understand what makes your shop worth a visit.",
-    watch: ["Featured item sales", "New customer visits"],
-  },
-} as const;
-type SampleKey = keyof typeof samples;
-const keys = Object.keys(samples) as SampleKey[];
+import { HeroBrief } from "./hero/HeroBrief";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-function SampleBrief() {
-  const [active, setActive] = useState<SampleKey>("cafe");
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const reduced = useReducedMotion();
-  const s = samples[active];
-
-  function onKey(e: React.KeyboardEvent, i: number) {
-    let n: number | undefined;
-    if (e.key === "ArrowRight") n = (i + 1) % keys.length;
-    if (e.key === "ArrowLeft") n = (i + keys.length - 1) % keys.length;
-    if (e.key === "Home") n = 0;
-    if (e.key === "End") n = keys.length - 1;
-    if (n !== undefined) {
-      e.preventDefault();
-      setActive(keys[n]);
-      tabRefs.current[n]?.focus();
-    }
-  }
-
+/** Drifting colour blobs and twinkling sparks behind the hero. */
+function HeroBackdrop({ reduced }: { reduced: boolean }) {
+  const blobs = [
+    { className: "-top-32 right-[-8%] h-[460px] w-[460px] bg-lilac", x: [0, -40, 0], y: [0, 30, 0], d: 16 },
+    { className: "bottom-[-10%] left-[-12%] h-[380px] w-[380px] bg-lime-100", x: [0, 50, 0], y: [0, -30, 0], d: 18 },
+    { className: "left-[38%] top-[20%] h-[260px] w-[260px] bg-brand-200/40", x: [0, 30, -20, 0], y: [0, -40, 20, 0], d: 22 },
+  ];
+  const sparks = [
+    { className: "left-[6%] top-[18%] h-3 w-3 text-brand-300", delay: 0.4 },
+    { className: "left-[44%] top-[10%] h-4 w-4 text-lime-400", delay: 1.6 },
+    { className: "left-[30%] bottom-[14%] h-2.5 w-2.5 text-brand-400", delay: 2.4 },
+    { className: "right-[4%] top-[8%] h-3.5 w-3.5 text-lime-400", delay: 0.9 },
+    { className: "right-[46%] bottom-[6%] h-3 w-3 text-brand-300", delay: 3.1 },
+    { className: "left-[50%] top-[46%] h-2 w-2 text-brand-300", delay: 2 },
+  ];
   return (
-    <motion.div
-      initial={reduced ? false : { opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, delay: 0.14, ease }}
-      className="w-full max-w-[590px] justify-self-center rounded-[20px] bg-lilac p-5 sm:p-7 lg:max-w-none"
-      id="sample"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3 text-[11px] font-semibold tracking-[0.08em] text-ink sm:text-xs">
-        <span>A CLEARER WEEK STARTS HERE</span>
-        <span className="font-normal tracking-normal text-gray-500">Illustrative example</span>
-      </div>
-
-      <div role="tablist" aria-label="Choose a sample business" className="mb-4 flex gap-1.5">
-        {keys.map((k, i) => (
-          <button
-            key={k}
-            ref={(el) => {
-              tabRefs.current[i] = el;
-            }}
-            id={`tab-${k}`}
-            role="tab"
-            aria-selected={active === k}
-            aria-controls="brief-panel"
-            tabIndex={active === k ? 0 : -1}
-            onClick={() => setActive(k)}
-            onKeyDown={(e) => onKey(e, i)}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors sm:text-sm",
-              active === k ? "bg-ink text-white" : "text-gray-500 hover:bg-brand-200/60"
-            )}
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {blobs.map((b, i) => (
+        <motion.div
+          key={i}
+          className={`absolute rounded-full blur-3xl ${b.className}`}
+          animate={reduced ? {} : { x: b.x, y: b.y }}
+          transition={{ duration: b.d, repeat: Infinity, ease: "easeInOut" as const }}
+        />
+      ))}
+      {!reduced &&
+        sparks.map((s, i) => (
+          <motion.span
+            key={i}
+            className={`absolute ${s.className}`}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1, 0], opacity: [0, 1, 0], rotate: [0, 90] }}
+            transition={{ duration: 2.6, delay: s.delay, repeat: Infinity, repeatDelay: 1.8 + i * 0.4 }}
           >
-            {samples[k].tab}
-          </button>
+            <Spark className="h-full w-full text-current" />
+          </motion.span>
         ))}
-      </div>
+    </div>
+  );
+}
 
-      <div
-        id="brief-panel"
-        role="tabpanel"
-        aria-labelledby={`tab-${active}`}
-        tabIndex={0}
-        className="rounded-xl border border-brand-200/70 bg-white p-5 shadow-[0_12px_32px_rgba(55,33,100,0.05)] sm:p-7"
+/** "A little smarter." — shimmering gradient text with a hand-drawn lime underline. */
+function SmarterLine({ reduced }: { reduced: boolean }) {
+  return (
+    <span className="relative inline-block font-fun font-medium tracking-[-0.035em]">
+      <motion.span
+        className="bg-clip-text text-transparent"
+        style={{
+          backgroundImage: "linear-gradient(100deg, #6840DE 0%, #6840DE 40%, #B9A3F5 50%, #6840DE 60%, #6840DE 100%)",
+          backgroundSize: "250% 100%",
+        }}
+        initial={{ backgroundPosition: "100% 0" }}
+        animate={reduced ? {} : { backgroundPosition: ["100% 0", "-50% 0"] }}
+        transition={{ delay: 1.4, duration: 1.8, ease: "easeInOut" as const, repeat: Infinity, repeatDelay: 3 }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="mb-2.5 text-xs font-semibold tracking-[0.08em] text-brand-600">YOUR WEEKLY STRATEGIC BRIEF</p>
-            <h2 className="mb-4 text-[22px] font-semibold leading-[1.3] tracking-[-0.04em] text-ink sm:text-[25px]">
-              A good week starts
-              <br />
-              with a smart move.
-            </h2>
-          </div>
-          <Image src="/brand/symbol.png" alt="" width={48} height={43} className="h-auto w-12 shrink-0" />
-        </div>
-
-        <div className="mb-5 flex justify-between border-t border-gray-100 pt-3 text-xs text-gray-500">
-          <span>{s.business}</span>
-          <span>This week</span>
-        </div>
-
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={active}
-            initial={reduced ? false : { opacity: 0.55, y: 7 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <div className="mb-5 flex gap-3">
-              <Target className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-              <div>
-                <p className="text-xs font-semibold tracking-[0.06em] text-ink">THE LOCAL SIGNAL</p>
-                <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{s.signal}</p>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-[#E3F2B7] px-5 py-5">
-              <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.06em] text-ink">
-                <Spark className="h-3.5 w-3.5 text-ink" /> YOUR NEXT MOVE
-              </p>
-              <h3 className="mb-2.5 mt-2.5 text-[22px] font-semibold leading-[1.25] tracking-[-0.035em] text-ink sm:text-[25px]">
-                {s.title[0]}
-                <br />
-                {s.title[1]}
-              </h3>
-              <p className="text-[13px] leading-relaxed text-ink/80 sm:text-sm">{s.move}</p>
-            </div>
-
-            <div className="mt-5 grid grid-cols-[1.4fr_1fr] gap-5">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.06em] text-ink">WHY IT MATTERS</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500">{s.why}</p>
-              </div>
-              <div className="border-l border-gray-100 pl-5">
-                <p className="text-xs font-semibold tracking-[0.06em] text-ink">WHAT TO WATCH</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                  {s.watch[0]}
-                  <br />
-                  {s.watch[1]}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <p className="mt-4 flex items-center justify-center gap-2 font-fun text-[19px] font-medium text-brand-600 sm:text-[21px]">
-        <Spark className="h-5 w-5 text-brand-600" /> Less guessing. More going.
-      </p>
-    </motion.div>
+        A little smarter.
+      </motion.span>
+      <svg aria-hidden="true" viewBox="0 0 220 18" preserveAspectRatio="none" className="absolute -bottom-2 right-[4%] h-3 w-[58%] sm:-bottom-3 sm:h-4">
+        <motion.path
+          d="M3 12 C 50 3, 110 3, 150 9 S 200 15, 217 6"
+          fill="none"
+          stroke="#C5E25E"
+          strokeWidth={6}
+          strokeLinecap="round"
+          initial={{ pathLength: reduced ? 1 : 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ delay: 1, duration: 0.8, ease: "easeInOut" as const }}
+        />
+      </svg>
+      <motion.span
+        aria-hidden="true"
+        className="absolute -right-9 -top-2 inline-flex h-7 w-7 sm:-right-11 sm:h-9 sm:w-9"
+        initial={{ scale: 0, rotate: -90 }}
+        animate={reduced ? { scale: 1, rotate: 0 } : { scale: [0, 1.4, 1], rotate: [-90, 20, 0] }}
+        transition={{ delay: 1.7, duration: 0.7 }}
+      >
+        <motion.span
+          className="inline-flex h-full w-full"
+          animate={reduced ? {} : { scale: [1, 0.8, 1], rotate: [0, 15, 0] }}
+          transition={{ delay: 2.5, duration: 2.4, repeat: Infinity }}
+        >
+          <Spark className="h-full w-full text-lime-400" />
+        </motion.span>
+      </motion.span>
+    </span>
   );
 }
 
 export function Hero() {
-  const reduced = useReducedMotion();
+  const reduced = !!useReducedMotion();
   const item = (i: number) => ({
-    initial: reduced ? false : { opacity: 0, y: 15 },
+    initial: reduced ? false : { opacity: 0, y: 18 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.6, delay: 0.08 * i, ease },
   });
+  const words = ["Your", "next", "move."];
 
   return (
-    <section className="site-container grid items-center gap-9 pb-10 pt-11 md:pb-16 md:pt-14 lg:grid-cols-[1.04fr_1fr] lg:gap-[52px] lg:pb-[66px] lg:pt-[76px]">
-      <div className="max-w-[590px]">
-        <motion.a
-          {...item(0)}
-          href="#pilot"
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-[#F3EEFB] py-1.5 pl-2 pr-3.5 text-[13px] font-semibold text-ink lg:mb-7"
-        >
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-lime-300">
-            <Spark className="h-3 w-3 text-ink" />
-          </span>
-          Big ideas. Small business energy.
-        </motion.a>
+    <section className="relative">
+      <HeroBackdrop reduced={reduced} />
+      <div className="site-container relative grid items-center gap-9 pb-10 pt-11 md:pb-16 md:pt-14 lg:grid-cols-[1.04fr_1fr] lg:gap-[52px] lg:pb-[66px] lg:pt-[76px]">
+        <div className="max-w-[590px]">
+          <motion.a
+            {...item(0)}
+            href="#pilot"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-[#F3EEFB] py-1.5 pl-2 pr-3.5 text-[13px] font-semibold text-ink lg:mb-7"
+          >
+            <motion.span
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-lime-300"
+              animate={reduced ? {} : { rotate: [0, 180, 360] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear" as const }}
+            >
+              <Spark className="h-3 w-3 text-ink" />
+            </motion.span>
+            Big ideas. Small business energy.
+          </motion.a>
 
-        <motion.h1
-          {...item(1)}
-          className="mb-6 text-[clamp(41px,7.9vw,59px)] font-semibold leading-[1.16] tracking-[-0.055em] text-ink lg:text-[clamp(45px,4.5vw,64px)]"
-        >
-          Your next move.
-          <br />
-          <span className="font-fun font-medium tracking-[-0.035em] text-brand-600">A little smarter.</span>
-        </motion.h1>
-
-        <motion.p {...item(2)} className="mb-7 max-w-[500px] text-base leading-[1.8] text-gray-500 sm:text-[17px] xl:text-lg">
-          You know your business. Agenzy helps you see what&apos;s next, turning your goals and local market signals
-          into a marketing plan you can actually use.
-        </motion.p>
-
-        <motion.div {...item(3)} className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Link href="/dashboard" className="btn-primary min-h-[54px] rounded-lg px-6 text-sm">
-            Explore the demo
-          </Link>
-          <a href="#try-it" className="group inline-flex items-center gap-2.5 text-sm font-semibold text-ink">
-            Try a real-world decision
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-ink/80 transition-colors group-hover:bg-ink group-hover:text-white">
-              <Play className="h-3 w-3 fill-current" aria-hidden="true" />
+          <h1 className="mb-6 text-[clamp(41px,7.9vw,59px)] font-semibold leading-[1.16] tracking-[-0.055em] text-ink lg:text-[clamp(45px,4.5vw,64px)]">
+            <span className="block">
+              {words.map((w, i) => (
+                <motion.span
+                  key={w}
+                  className="inline-block"
+                  initial={reduced ? false : { opacity: 0, y: 28, rotateX: -60, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, y: 0, rotateX: 0, filter: "blur(0px)" }}
+                  transition={{ delay: 0.15 + i * 0.12, duration: 0.7, ease }}
+                >
+                  {w}
+                  {i < words.length - 1 && "\u00a0"}
+                </motion.span>
+              ))}
             </span>
-          </a>
-        </motion.div>
+            <motion.span
+              className="block"
+              initial={reduced ? false : { opacity: 0, y: 24, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.6, duration: 0.7, ease }}
+            >
+              <SmarterLine reduced={reduced} />
+            </motion.span>
+          </h1>
 
-        <motion.p {...item(4)} className="mb-0 mt-4 text-xs text-gray-500 lg:mb-9">
-          Prototype preview. Examples use illustrative data.
-        </motion.p>
+          <motion.p {...item(4)} className="mb-7 max-w-[500px] text-base leading-[1.8] text-gray-500 sm:text-[17px] xl:text-lg">
+            You know your business. Agenzy helps you see what&apos;s next, turning your goals and local market signals
+            into a marketing plan you can actually use.
+          </motion.p>
 
-        <motion.div {...item(5)} className="hidden items-center gap-4 text-[13px] text-gray-600 lg:flex">
-          <span className="h-px w-10 bg-ink/60" aria-hidden="true" />
-          <span>
-            Your neighbourhood.
-            <br />
-            <strong className="font-semibold text-ink">Your unfair advantage.</strong>
-          </span>
-        </motion.div>
+          <motion.div {...item(5)} className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Link href="/dashboard" className="btn-primary relative min-h-[54px] overflow-hidden rounded-lg px-6 text-sm">
+              <motion.span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+                initial={{ left: "-50%" }}
+                animate={reduced ? {} : { left: "150%" }}
+                transition={{ delay: 2.2, duration: 0.9, repeat: Infinity, repeatDelay: 3.5, ease: "easeInOut" as const }}
+              />
+              <span className="relative">Explore the demo</span>
+            </Link>
+            <a href="#what-you-get" className="group inline-flex items-center gap-2.5 text-sm font-semibold text-ink">
+              Watch how it works
+              <span className="relative flex h-7 w-7 items-center justify-center rounded-full border border-ink/80 transition-colors group-hover:bg-ink group-hover:text-white">
+                {!reduced && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-full border border-brand-500"
+                    animate={{ scale: [1, 1.7], opacity: [0.7, 0] }}
+                    transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 0.6 }}
+                  />
+                )}
+                <Play className="h-3 w-3 fill-current" aria-hidden="true" />
+              </span>
+            </a>
+          </motion.div>
+
+          <motion.p {...item(6)} className="mb-0 mt-4 text-xs text-gray-500 lg:mb-9">
+            Prototype preview. Examples use illustrative data.
+          </motion.p>
+
+          <motion.div {...item(7)} className="hidden items-center gap-4 text-[13px] text-gray-600 lg:flex">
+            <motion.span
+              className="h-px bg-ink/60"
+              aria-hidden="true"
+              initial={{ width: 0 }}
+              animate={{ width: 40 }}
+              transition={{ delay: 1.2, duration: 0.6 }}
+            />
+            <span>
+              Your neighbourhood.
+              <br />
+              <strong className="font-semibold text-ink">Your unfair advantage.</strong>
+            </span>
+          </motion.div>
+        </div>
+
+        <HeroBrief />
       </div>
-
-      <SampleBrief />
     </section>
   );
 }
