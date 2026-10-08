@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/Logo";
+import { useWorkspaceMode } from "@/lib/workspace";
+import { demoOwner } from "@/lib/demo-workspace";
 
 const navItems = [
   { label: "Dashboard",        href: "/dashboard",   icon: LayoutDashboard },
@@ -70,6 +72,7 @@ function NavLink({
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const mode = useWorkspaceMode();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
@@ -77,12 +80,14 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       {/* Workspace context */}
       <div className="mx-3 mt-4 rounded-2xl border border-brand-200/60 bg-lilac px-3.5 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-600">
-          Demo workspace
+          {mode === "live" ? "Your workspace" : "Demo workspace"}
         </p>
         <p className="mt-1 truncate font-display text-sm font-semibold text-ink">
-          Sample local business
+          {mode === "live" ? "Signed in" : demoOwner.business_name}
         </p>
-        <p className="truncate text-xs text-gray-500">Illustrative data only</p>
+        <p className="truncate text-xs text-gray-500">
+          {mode === "live" ? "Live workspace data" : mode === "demo" ? "Fictional business · sample data" : "Checking workspace…"}
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Main">
@@ -130,11 +135,11 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-gray-200/70 p-3">
         <button className="group flex w-full items-center gap-3 rounded-control px-2.5 py-2 transition-colors hover:bg-gray-100">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">
-            DW
+            {mode === "live" ? "Me" : "JL"}
           </div>
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-sm font-semibold text-ink">Demo workspace</p>
-            <p className="truncate text-xs text-gray-500">Prototype view</p>
+            <p className="truncate text-sm font-semibold text-ink">{mode === "live" ? "Account" : "Demo workspace"}</p>
+            <p className="truncate text-xs text-gray-500">{mode === "live" ? "Settings & sign out" : "Prototype view"}</p>
           </div>
           <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-500" />
         </button>
@@ -146,8 +151,18 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 export function Sidebar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (wasOpen.current && !open) menuButton.current?.focus();
+    wasOpen.current = open;
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <>
@@ -167,9 +182,11 @@ export function Sidebar() {
           <Logo height={26} priority />
         </Link>
         <button
+          ref={menuButton}
           onClick={() => setOpen(true)}
           className="btn-ghost -mr-2"
           aria-label="Open navigation"
+          aria-expanded={open}
         >
           <Menu className="h-5 w-5" />
         </button>

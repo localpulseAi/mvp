@@ -4,9 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronRight, MessageSquare } from "lucide-react";
 import type { BriefRecommendation, ChangeItem, OccasionItem, SessionSummary } from "@/lib/api";
-import { sampleBrief, sampleCompetitorInsight } from "@/lib/demo-content";
 import { cn } from "@/lib/utils";
-import { fadeUp, SampleTag } from "./primitives";
+import { fadeUp } from "./primitives";
 
 /* ─── helpers ──────────────────────────────────────────────── */
 
@@ -36,30 +35,20 @@ const severityConfig = {
 
 /* ─── This week's plays ────────────────────────────────────── */
 
-export function PlaysList({ plays }: { plays: BriefRecommendation[] }) {
+export function PlaysList({ plays, startIndex = 1 }: { plays: BriefRecommendation[]; startIndex?: number }) {
   if (plays.length === 0) {
-    const sample = sampleBrief.recommendations[0];
     return (
-      <div className="flex items-start gap-3 px-5 py-5">
-        <SampleTag />
-        <div>
-          <p className="text-sm font-semibold text-ink">{sample.title}</p>
-          <p className="mt-1 text-sm leading-relaxed text-gray-500">{sample.body}</p>
-        </div>
-      </div>
+      <p className="px-5 py-5 text-sm text-gray-500">
+        No other moves this week. Focus on the top recommendation above.
+      </p>
     );
   }
   return (
     <ol className="divide-y divide-gray-100">
       {plays.map((rec, i) => (
         <motion.li key={i} custom={i + 2} initial="hidden" animate="show" variants={fadeUp} className="flex items-start gap-4 px-5 py-4">
-          <span
-            className={cn(
-              "tabular mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-              i === 0 ? "bg-brand-600 text-white" : "bg-lime-300 text-ink"
-            )}
-          >
-            {i + 1}
+          <span className="tabular mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lilac text-xs font-semibold text-brand-700">
+            {i + 1 + startIndex}
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-ink">{rec.title}</p>
@@ -80,7 +69,10 @@ export function SessionsList({ sessions }: { sessions: SessionSummary[] }) {
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lilac">
           <MessageSquare className="h-5 w-5 text-brand-600" />
         </span>
-        <p className="text-sm text-gray-500">No sessions yet. Ask your first strategic question.</p>
+        <p className="text-sm text-gray-500">No sessions yet.</p>
+        <Link href="/session" className="text-sm font-semibold text-brand-700 hover:underline">
+          Ask your first strategic question
+        </Link>
       </div>
     );
   }
@@ -88,7 +80,7 @@ export function SessionsList({ sessions }: { sessions: SessionSummary[] }) {
     <ul className="divide-y divide-gray-100">
       {sessions.map((s, i) => (
         <motion.li key={s.id} custom={i + 4} initial="hidden" animate="show" variants={fadeUp}>
-          <Link href="/session" className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
+          <Link href={`/session?id=${s.id}`} className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-ink">{s.original_question}</p>
               <p className="tabular mt-0.5 text-xs text-gray-500">
@@ -109,7 +101,12 @@ export function SessionsList({ sessions }: { sessions: SessionSummary[] }) {
 
 export function CalendarList({ occasions }: { occasions: OccasionItem[] }) {
   if (occasions.length === 0) {
-    return <p className="px-5 py-5 text-sm text-gray-500">No calendar data is connected to this workspace yet.</p>;
+    return (
+      <p className="px-5 py-5 text-sm text-gray-500">
+        No upcoming local occasions match your business category yet.{" "}
+        <Link href="/settings" className="font-semibold text-brand-700 hover:underline">Check your category</Link>
+      </p>
+    );
   }
   return (
     <ul className="space-y-4 px-5 py-5">
@@ -144,16 +141,21 @@ export function CalendarList({ occasions }: { occasions: OccasionItem[] }) {
 
 /* ─── Competitor pulse ─────────────────────────────────────── */
 
-export function PulseList({ changes }: { changes: ChangeItem[] }) {
+export function PulseList({ changes, trackedCount }: { changes: ChangeItem[]; trackedCount: number | null }) {
   if (changes.length === 0) {
     return (
-      <div className="m-4 flex items-start gap-3 rounded-control bg-gray-50 p-4">
-        <SampleTag />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">{sampleCompetitorInsight.title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-gray-500">{sampleCompetitorInsight.implication}</p>
-        </div>
-      </div>
+      <p className="px-5 py-5 text-sm text-gray-500">
+        {trackedCount === 0 ? (
+          <>
+            You aren&apos;t following any nearby businesses yet.{" "}
+            <Link href="/settings#competitors" className="font-semibold text-brand-700 hover:underline">
+              Add a business
+            </Link>
+          </>
+        ) : (
+          "No public changes from the businesses you follow in the last 7 days."
+        )}
+      </p>
     );
   }
   return (

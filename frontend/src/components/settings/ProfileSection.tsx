@@ -1,173 +1,207 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2, MapPin, Pencil, Save, Sparkles, Users, X } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, CheckCircle2, Info, Loader2, MapPin, Pencil, Save, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateProfile, type OwnerProfile } from "@/lib/api";
+import { errorMessage } from "@/lib/workspace";
 import { Section } from "./primitives";
 
 type Field = keyof OwnerProfile;
+type FieldDef = { label: string; field: Field; span?: boolean; multi?: boolean; hint?: string };
 
-const profileFields: { label: string; field: Field; span?: boolean; multi?: boolean }[] = [
+/** Needed before recommendations can be tailored at all. */
+const REQUIRED: FieldDef[] = [
   { label: "Business name", field: "business_name" },
-  { label: "Niche", field: "niche" },
-  { label: "Address", field: "address", span: true },
-  { label: "Instagram", field: "instagram_handle" },
-  { label: "Facebook page", field: "facebook_page" },
-  { label: "Brand voice", field: "brand_voice", span: true, multi: true },
-  { label: "This quarter's goal", field: "quarter_goal", span: true, multi: true },
+  { label: "Business category", field: "niche", hint: "e.g. café, salon, boutique" },
+  { label: "Street address", field: "address", span: true, hint: "Used to find nearby occasions and competitors" },
+  { label: "This quarter's goal", field: "quarter_goal", span: true, multi: true, hint: "One sentence is enough" },
 ];
 
-const opsFields: { label: string; field: Field }[] = [
+/** Improves relevance; ranges only, never exact financials. */
+const OPTIONAL_CONTEXT: FieldDef[] = [
+  { label: "Brand voice", field: "brand_voice", span: true, multi: true },
+  { label: "Instagram handle", field: "instagram_handle" },
+  { label: "Facebook page", field: "facebook_page" },
   { label: "Gross margin band", field: "gross_margin_band" },
   { label: "Monthly fixed costs", field: "fixed_cost_band" },
   { label: "Price range", field: "price_range" },
-  { label: "Peak capacity", field: "capacity" },
   { label: "Staff size", field: "staff_size" },
-  { label: "Peak hours", field: "peak_hours" },
+  { label: "Spare capacity", field: "capacity", span: true },
+  { label: "Peak hours", field: "peak_hours", span: true },
 ];
 
+const EDITABLE: Field[] = [...REQUIRED, ...OPTIONAL_CONTEXT].map((f) => f.field).concat("business_description");
+
 function FieldBox({
-  label,
-  field,
+  def,
   value,
   editing,
-  multi,
-  className,
+  missing,
   onChange,
 }: {
-  label: string;
-  field: string;
+  def: FieldDef;
   value: string;
   editing: boolean;
-  multi?: boolean;
-  className?: string;
+  missing?: boolean;
   onChange: (v: string) => void;
 }) {
-  const id = `profile-${field}`;
+  const id = `profile-${def.field}`;
+  const hintId = def.hint ? `${id}-hint` : undefined;
   return (
-    <div className={className}>
-      <label htmlFor={editing ? id : undefined} className="label">{label}</label>
+    <div className={cn(def.span && "sm:col-span-2")}>
+      <label htmlFor={editing ? id : undefined} className="label">
+        {def.label}
+      </label>
       {editing ? (
-        multi ? (
-          <textarea id={id} rows={2} value={value} onChange={(e) => onChange(e.target.value)} className="input resize-none" />
+        def.multi ? (
+          <textarea id={id} rows={2} value={value} onChange={(e) => onChange(e.target.value)} className="input resize-none" aria-describedby={hintId} />
         ) : (
-          <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} className="input" />
+          <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} className="input" aria-describedby={hintId} />
         )
       ) : (
-        <p className="min-h-[42px] rounded-control border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-ink">
-          {value || <span className="text-gray-400">Not set</span>}
+        <p
+          className={cn(
+            "min-h-[42px] rounded-control border px-4 py-2.5 text-sm",
+            missing ? "border-dashed border-brand-300 bg-lilac/40 text-gray-500" : "border-gray-200/70 bg-white text-ink"
+          )}
+        >
+          {value || (missing ? "Needed" : <span className="text-gray-400">Not set</span>)}
         </p>
       )}
+      {editing && def.hint && <p id={hintId} className="mt-1 text-xs text-gray-500">{def.hint}</p>}
     </div>
   );
 }
 
-export function ProfileSection({ profile, onSaved }: { profile: OwnerProfile | null; onSaved: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [form, setForm] = useState<Partial<OwnerProfile>>({});
+type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
 
-  useEffect(() => {
-    if (profile) setForm(profile);
-  }, [profile]);
+export function ProfileSection({
+  profile,
+  isDemo,
+  onSaved,
+  onDirtyChange,
+}: {
+  profile: OwnerProfile;
+  isDemo: boolean;
+  onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [save, setSave] = useState<SaveState>({ kind: "idle" });
+  const [form, setForm] = useState<Partial<OwnerProfile>>(profile);
+
+  useEffect(() => setForm(profile), [profile]);
+
+  const val = (f: Field) => ((form[f] as string | null) ?? "");
+  const dirty = editing && EDITABLE.some((f) => (form[f] ?? "") !== (profile[f] ?? ""));
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
+
+  const missingRequired = useMemo(() => REQUIRED.filter((d) => !((profile[d.field] as string | null) ?? "").trim()), [profile]);
 
   function upd(field: Field, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (save.kind !== "saving") setSave({ kind: "idle" });
+  }
+
+  function cancel() {
+    setEditing(false);
+    setForm(profile);
+    setSave({ kind: "idle" });
   }
 
   async function handleSave() {
-    setSaving(true);
-    setError("");
+    setSave({ kind: "saving" });
+    const payload = Object.fromEntries(EDITABLE.map((f) => [f, (form[f] as string | null) ?? undefined]));
     try {
-      await updateProfile({
-        business_name: form.business_name ?? undefined,
-        address: form.address ?? undefined,
-        niche: form.niche ?? undefined,
-        instagram_handle: form.instagram_handle ?? undefined,
-        facebook_page: form.facebook_page ?? undefined,
-        business_description: form.business_description ?? undefined,
-        brand_voice: form.brand_voice ?? undefined,
-        quarter_goal: form.quarter_goal ?? undefined,
-        gross_margin_band: form.gross_margin_band ?? undefined,
-        fixed_cost_band: form.fixed_cost_band ?? undefined,
-        price_range: form.price_range ?? undefined,
-        capacity: form.capacity ?? undefined,
-        staff_size: form.staff_size ?? undefined,
-        peak_hours: form.peak_hours ?? undefined,
-      });
-      onSaved();
+      await updateProfile(payload);
+      setSave({ kind: "saved" });
       setEditing(false);
+      onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save your profile.");
-    } finally {
-      setSaving(false);
+      setSave({ kind: "error", message: errorMessage(err) });
     }
   }
 
-  const initials = (form.business_name ?? "?")
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-
-  const val = (f: Field) => (form[f] as string) ?? "";
+  const initials = (form.business_name || "?").split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
   return (
     <Section
       title="Business profile"
       description="The context Agenzy uses to tailor every recommendation."
       action={
-        editing ? (
+        isDemo ? null : editing ? (
           <div className="flex gap-2">
-            <button onClick={() => { setEditing(false); setError(""); if (profile) setForm(profile); }} className="btn-secondary">
-              <X className="h-4 w-4" /> Cancel
+            <button onClick={cancel} disabled={save.kind === "saving"} className="btn-secondary">
+              <X className="h-4 w-4" aria-hidden="true" /> Cancel
             </button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save changes
+            <button onClick={handleSave} disabled={save.kind === "saving" || !dirty} className="btn-primary">
+              {save.kind === "saving" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}
+              {save.kind === "saving" ? "Saving…" : "Save changes"}
             </button>
           </div>
         ) : (
-          <button onClick={() => setEditing(true)} className="btn-secondary self-start">
-            <Pencil className="h-4 w-4" /> Edit profile
+          <button onClick={() => { setEditing(true); setSave({ kind: "idle" }); }} className="btn-secondary self-start">
+            <Pencil className="h-4 w-4" aria-hidden="true" /> Edit profile
           </button>
         )
       }
     >
-      {error && <p role="alert" className="mb-4 text-sm text-red-600">{error}</p>}
+      {/* Save feedback, announced */}
+      <div aria-live="polite" className="empty:hidden">
+        {save.kind === "saved" && (
+          <p className="mb-4 flex items-center gap-2 rounded-control border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Profile saved.
+          </p>
+        )}
+        {save.kind === "error" && (
+          <p role="alert" className="mb-4 rounded-control border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            Couldn&apos;t save your profile: {save.message} Your edits are still here.
+          </p>
+        )}
+      </div>
+
+      {isDemo && (
+        <p className="mb-4 flex items-start gap-2 rounded-control border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+          Editing is turned off in the demo workspace. Sign in to update your own business profile.
+        </p>
+      )}
+
+      {/* First task: complete required context (live only) */}
+      {!isDemo && missingRequired.length > 0 && !editing && (
+        <div className="card-ink mb-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-lime-300">Start here</p>
+            <p className="mt-1 font-display text-lg font-semibold">Add the basics so recommendations fit your business</p>
+            <p className="mt-1 text-sm text-white/70">
+              Missing: {missingRequired.map((d) => d.label.toLowerCase()).join(", ")}.
+            </p>
+          </div>
+          <button onClick={() => setEditing(true)} className="btn-lime shrink-0">
+            Complete required context <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       {/* Identity card */}
       <div className="card-lilac mb-6 p-5 sm:p-6">
         <div className="flex items-center gap-4 sm:gap-5">
-          <div className="relative shrink-0">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 font-display text-lg font-semibold text-white shadow-violet sm:h-16 sm:w-16 sm:text-xl">
-              {initials}
-            </div>
-            {profile?.is_founding_member && (
-              <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-lime-300 ring-2 ring-lilac">
-                <Sparkles className="h-3 w-3 text-ink" />
-              </div>
-            )}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-600 font-display text-lg font-semibold text-white shadow-violet sm:h-16 sm:w-16 sm:text-xl">
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate font-display text-xl font-semibold text-ink">{form.business_name || "Your business"}</h3>
-              {profile?.is_founding_member && <Badge variant="lime">Founding member</Badge>}
-            </div>
+            <h3 className="truncate font-display text-xl font-semibold text-ink">{form.business_name || "Your business"}</h3>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
               {form.address && (
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-600" aria-hidden="true" />
                   <span className="truncate">{form.address}</span>
                 </span>
               )}
               {form.niche && (
                 <span className="flex items-center gap-1.5 capitalize">
-                  <Users className="h-3.5 w-3.5 text-brand-600" />
+                  <Users className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" />
                   {form.niche}
                 </span>
               )}
@@ -177,36 +211,32 @@ export function ProfileSection({ profile, onSaved }: { profile: OwnerProfile | n
       </div>
 
       <div className="card p-5 sm:p-6">
-        <h3 className="section-title mb-4">Business details</h3>
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="section-title">Required context</h3>
+          <p className="text-xs text-gray-500">
+            {REQUIRED.length - missingRequired.length} of {REQUIRED.length} complete
+          </p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {profileFields.map(({ label, field, span, multi }) => (
+          {REQUIRED.map((def) => (
             <FieldBox
-              key={field}
-              label={label}
-              field={field}
-              value={val(field)}
+              key={def.field}
+              def={def}
+              value={val(def.field)}
               editing={editing}
-              multi={multi}
-              className={cn(span && "sm:col-span-2")}
-              onChange={(v) => upd(field, v)}
+              missing={!isDemo && missingRequired.includes(def)}
+              onChange={(v) => upd(def.field, v)}
             />
           ))}
         </div>
       </div>
 
       <div className="card mt-4 p-5 sm:p-6">
-        <h3 className="section-title">Operations</h3>
-        <p className="mb-4 mt-1 text-xs text-gray-500">Ranges only. Agenzy never asks for exact financials.</p>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {opsFields.map(({ label, field }) => (
-            <FieldBox
-              key={field}
-              label={label}
-              field={field}
-              value={val(field)}
-              editing={editing}
-              onChange={(v) => upd(field, v)}
-            />
+        <h3 className="section-title">Optional context</h3>
+        <p className="mb-4 mt-1 text-xs text-gray-500">Makes advice more specific. Ranges only; Agenzy never asks for exact financials.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {OPTIONAL_CONTEXT.map((def) => (
+            <FieldBox key={def.field} def={def} value={val(def.field)} editing={editing} onChange={(v) => upd(def.field, v)} />
           ))}
         </div>
       </div>

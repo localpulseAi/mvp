@@ -42,3 +42,13 @@ export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
   return str.slice(0, length) + "...";
 }
+
+/**
+ * Parses an API date. Date-only strings ("2026-10-05") are treated as local
+ * calendar dates; `new Date("2026-10-05")` would read them as UTC midnight
+ * and show the previous day in timezones behind UTC.
+ */
+export function parseApiDate(value: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+}

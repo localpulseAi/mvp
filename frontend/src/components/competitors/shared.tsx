@@ -4,17 +4,15 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Activity,
-  AlertCircle,
   ArrowRight,
+  Clock,
+  Eye,
   Hash,
   Lightbulb,
-  Loader2,
   Megaphone,
-  RefreshCw,
   Star,
   Tag,
   TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PatternItem } from "@/lib/api";
@@ -57,49 +55,6 @@ export const fadeUp = {
     transition: { delay: i * 0.05, duration: 0.3, ease: "easeOut" as const },
   }),
 };
-
-// ── Page header ───────────────────────────────────────────────────────────────
-
-export function PageHeader({
-  analyzing,
-  onAnalyze,
-  error,
-  count,
-}: {
-  analyzing: boolean;
-  onAnalyze: () => void;
-  error: string;
-  count?: number;
-}) {
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
-        <p className="eyebrow">Competitor intelligence</p>
-        <h1 className="page-title mt-1.5">Your competitive set</h1>
-        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500">
-          {count !== undefined && (
-            <span className="font-medium text-ink">
-              {count} business{count !== 1 ? "es" : ""} tracked ·{" "}
-            </span>
-          )}
-          Product prototype: insights depend on configured sources. Demo samples are illustrative, not live analysis.
-        </p>
-      </div>
-      <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-        <button onClick={onAnalyze} disabled={analyzing} className="btn-primary">
-          {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          {analyzing ? "Analysing…" : "Run analysis"}
-        </button>
-        {error && (
-          <p role="alert" className="flex max-w-xs items-center gap-1.5 text-xs text-red-600 sm:text-right">
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            {error}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ── Pattern card ──────────────────────────────────────────────────────────────
 
@@ -147,7 +102,15 @@ export function PatternCard({ pattern, index }: { pattern: PatternItem; index: n
                 {cfg.label}
               </span>
             </div>
-            <p className="text-sm leading-relaxed text-gray-600">{pattern.description}</p>
+            <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">
+              <Eye className="h-3 w-3" aria-hidden="true" /> Observed in public signals
+            </p>
+            <p className="text-sm leading-relaxed text-gray-700">{pattern.description}</p>
+            {pattern.detected_at && (
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-gray-500">
+                <Clock className="h-3 w-3" aria-hidden="true" /> Detected {daysAgo(pattern.detected_at)}
+              </p>
+            )}
           </div>
         </div>
 
@@ -172,7 +135,7 @@ export function PatternCard({ pattern, index }: { pattern: PatternItem; index: n
             <div className="flex gap-3">
               <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
               <div className="min-w-0 flex-1">
-                <p className="eyebrow mb-1 text-[11px]">What this means for you</p>
+                <p className="eyebrow mb-1 text-[11px]">Our interpretation · what this means for you</p>
                 <p className="text-sm leading-relaxed text-ink">{pattern.strategic_implication}</p>
                 <Link
                   href="/session"
@@ -192,33 +155,6 @@ export function PatternCard({ pattern, index }: { pattern: PatternItem; index: n
 
 // ── Small pieces ──────────────────────────────────────────────────────────────
 
-export function InsightList({
-  title,
-  items,
-  tone,
-}: {
-  title: string;
-  items: string[];
-  tone: "positive" | "caution";
-}) {
-  const Icon = tone === "positive" ? TrendingUp : AlertCircle;
-  const iconColor = tone === "positive" ? "text-emerald-600" : "text-amber-600";
-
-  return (
-    <div className="rounded-control border border-gray-200/70 bg-white p-4">
-      <p className="text-xs font-semibold text-ink">{title}</p>
-      <ul className="mt-2.5 space-y-2">
-        {items.map((item) => (
-          <li key={item} className="flex gap-2 text-sm leading-relaxed text-gray-600">
-            <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconColor)} />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function SummaryTile({ count, label, dot }: { count: number; label: string; dot: string }) {
   return (
     <div className="card p-4 sm:p-5">
@@ -228,5 +164,25 @@ export function SummaryTile({ count, label, dot }: { count: number; label: strin
       </div>
       <p className="tabular mt-2 font-display text-3xl font-semibold text-ink">{count}</p>
     </div>
+  );
+}
+
+/** "Instagram posts · 2d ago" chips from an analysis' data_freshness map. */
+export function FreshnessChips({ freshness }: { freshness: Record<string, string> | null | undefined }) {
+  const entries = Object.entries(freshness ?? {});
+  if (entries.length === 0) return <p className="text-xs text-gray-500">Source freshness not reported</p>;
+  return (
+    <ul className="flex flex-wrap gap-1.5" aria-label="Sources and freshness">
+      {entries.map(([src, ts]) => (
+        <li
+          key={src}
+          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-canvas px-2 py-1 text-[11px] font-medium text-gray-600"
+        >
+          <span className="font-semibold text-ink">{src}</span>
+          <span aria-hidden="true">·</span>
+          <span>{daysAgo(ts)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -1,20 +1,9 @@
 "use client";
+import { parseApiDate } from "@/lib/utils";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  Newspaper,
-  MessageSquare,
-  Users,
-  TrendingUp,
-  Calendar,
-  Sparkles,
-  Eye,
-  Activity,
-  ArrowRight,
-  Info,
-} from "lucide-react";
+import { MotionConfig, motion } from "framer-motion";
+import { Newspaper, MessageSquare, Users, TrendingUp, Calendar, Sparkles, Eye, Activity, ArrowRight } from "lucide-react";
 import {
   getMe,
   getCurrentBrief,
@@ -28,8 +17,53 @@ import {
   type ChangeItem,
   type OccasionItem,
 } from "@/lib/api";
-import { SectionCard, StatCard } from "@/components/dashboard/primitives";
+import { errorMessage, useWorkspaceData } from "@/lib/workspace";
+import { demoBrief, demoChanges, demoCompetitors, demoOccasions, demoOwner, demoSessions } from "@/lib/demo-workspace";
+import { DemoBanner, ErrorState, LoadingState, PageHeader } from "@/components/ui/states";
+import { SectionCard, SectionError, StatCard } from "@/components/dashboard/primitives";
 import { PlaysList, SessionsList, CalendarList, PulseList } from "@/components/dashboard/widgets";
+import { SetupChecklist, TopMove } from "@/components/dashboard/TopMove";
+
+/* ─── data ─────────────────────────────────────────────────── */
+
+/** Each section loads independently; a failure stays visible as a failure. */
+type Section<T> = { ok: true; data: T } | { ok: false; error: string };
+
+type DashboardData = {
+  owner: Section<OwnerProfile>;
+  brief: Section<WeeklyBriefOut | null>;
+  sessions: Section<SessionSummary[]>;
+  changes: Section<ChangeItem[]>;
+  occasions: Section<OccasionItem[]>;
+  competitorCount: Section<number>;
+};
+
+const ok = <T,>(data: T): Section<T> => ({ ok: true, data });
+
+function settle<T>(p: Promise<T>): Promise<Section<T>> {
+  return p.then(ok, (err) => ({ ok: false as const, error: errorMessage(err) }));
+}
+
+async function loadLive(): Promise<DashboardData> {
+  const [owner, brief, sessions, changes, occasions, competitorCount] = await Promise.all([
+    settle(getMe()),
+    settle(getCurrentBrief().then((r) => r?.brief ?? null)),
+    settle(listSessions().then((r) => r.sessions)),
+    settle(getRecentChanges(7).then((r) => r.changes ?? [])),
+    settle(getOccasions().then((r) => r.occasions ?? [])),
+    settle(getCompetitors().then((cs) => cs.length)),
+  ]);
+  return { owner, brief, sessions, changes, occasions, competitorCount };
+}
+
+const demoData: DashboardData = {
+  owner: ok(demoOwner),
+  brief: ok(demoBrief),
+  sessions: ok(demoSessions),
+  changes: ok(demoChanges),
+  occasions: ok(demoOccasions),
+  competitorCount: ok(demoCompetitors.length),
+};
 
 /* ─── helpers ──────────────────────────────────────────────── */
 
@@ -41,165 +75,204 @@ function greeting(): string {
 }
 
 function todayLabel(): string {
-  return new Date().toLocaleDateString("en-CA", {
-    weekday: "long", month: "short", day: "numeric", year: "numeric",
-  });
+  return new Date().toLocaleDateString("en-CA", { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+}
+
+function shortDate(iso: string) {
+  return parseApiDate(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 }
 
 /* ─── page ─────────────────────────────────────────────────── */
 
 export default function DashboardPage() {
-  const [owner, setOwner] = useState<OwnerProfile | null>(null);
-  const [brief, setBrief] = useState<WeeklyBriefOut | null>(null);
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [changes, setChanges] = useState<ChangeItem[]>([]);
-  const [occasions, setOccasions] = useState<OccasionItem[]>([]);
-  const [competitorCount, setCompetitorCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const { state, reload } = useWorkspaceData(loadLive, demoData);
 
-  useEffect(() => {
-    Promise.allSettled([
-      getMe().then(setOwner),
-      getCurrentBrief().then((r) => r?.brief && setBrief(r.brief)),
-      listSessions().then((r) => setSessions(r.sessions.slice(0, 3))),
-      getRecentChanges(7).then((r) => setChanges((r.changes ?? []).slice(0, 3))),
-      getOccasions().then((r) => setOccasions((r.occasions ?? []).slice(0, 4))),
-      getCompetitors().then((cs) => setCompetitorCount(cs.length)),
-    ]).then((results) => {
-      setLoadError(results.some((result) => result.status === "rejected"));
-    }).finally(() => setLoading(false));
-  }, []);
+  if (state.status === "loading") {
+    return (
+      <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <LoadingState label="Loading your workspace" />
+      </div>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <ErrorState message={state.error} onRetry={reload} />
+      </div>
+    );
+  }
 
-  const businessName = owner?.business_name ?? "your business";
-  const plays = (brief?.recommendations ?? []).slice(0, 2);
-  const urgentChange = changes.find((c) => c.severity === "high");
+  const { mode, data } = state;
+  const { owner, brief, sessions, changes, occasions, competitorCount } = data;
+  const isDemo = mode === "demo";
+
+  const businessName = owner.ok ? owner.data.business_name : null;
+  const currentBrief = brief.ok ? brief.data : null;
+  const topRec = currentBrief?.recommendations?.[0] ?? null;
+  const otherPlays = (currentBrief?.recommendations ?? []).slice(1, 3);
+  const urgentChange = changes.ok ? changes.data.find((c) => c.severity === "high") : undefined;
 
   const stats = [
     {
       label: "Weekly brief",
-      value: brief ? "Ready" : "Pending",
-      sub: brief
-        ? `Week of ${new Date(brief.week_start).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}`
-        : "Next Monday",
+      value: !brief.ok ? "Unavailable" : currentBrief ? "Ready" : "Not yet",
+      sub: !brief.ok
+        ? "Couldn't check status"
+        : currentBrief
+        ? `Week of ${shortDate(currentBrief.week_start)}`
+        : "Complete setup to generate",
       icon: Newspaper,
     },
-    { label: "Sessions", value: String(sessions.length), sub: "this month", icon: MessageSquare },
-    { label: "Tracked", value: String(competitorCount), sub: "competitors", icon: Users },
+    {
+      label: "Sessions",
+      value: sessions.ok ? String(sessions.data.length) : "Unavailable",
+      sub: sessions.ok ? "strategy sessions" : "Couldn't load sessions",
+      icon: MessageSquare,
+    },
+    {
+      label: "Following",
+      value: competitorCount.ok ? String(competitorCount.data) : "Unavailable",
+      sub: competitorCount.ok ? "nearby businesses" : "Couldn't load competitors",
+      icon: Users,
+    },
     {
       label: "Changes",
-      value: String(changes.length),
-      sub: changes.length > 0 ? "New this week, review below" : "this week",
+      value: changes.ok ? String(changes.data.length) : "Unavailable",
+      sub: !changes.ok ? "Couldn't load changes" : changes.data.length > 0 ? "public changes this week" : "none this week",
       icon: Activity,
-      tone: changes.length > 0 ? ("alert" as const) : ("default" as const),
+      tone: changes.ok && changes.data.some((c) => c.severity === "high") ? ("alert" as const) : ("default" as const),
     },
   ];
 
+  const setupSteps = [
+    {
+      label: "Add your business name and location",
+      done: owner.ok && !!owner.data.business_name && !!owner.data.address,
+      href: "/settings",
+      cta: "Complete profile",
+    },
+    {
+      label: "Follow at least one nearby business",
+      done: competitorCount.ok && competitorCount.data > 0,
+      href: "/settings#competitors",
+      cta: "Add a business",
+    },
+    { label: "Generate your first weekly brief", done: false, href: "/brief", cta: "Go to Weekly Brief" },
+  ];
+
   return (
-    <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="eyebrow">{todayLabel()}</p>
-          <h1 className="page-title mt-1.5">
-            {greeting()}, {businessName}
-          </h1>
-          <p className="muted mt-1">Here&apos;s what deserves your attention this week.</p>
+    <MotionConfig reducedMotion="user">
+      <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {isDemo && <DemoBanner what="a sample dashboard" />}
+
+        <PageHeader
+          eyebrow={todayLabel()}
+          title={businessName ? `${greeting()}, ${businessName}` : "Your next moves"}
+          description={businessName ? "Your next moves for this week, most important first." : "What deserves your attention this week."}
+          action={
+            <Link href="/session" className="btn-primary">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              New strategy session
+            </Link>
+          }
+        />
+
+        {/* Lead: one actionable recommendation */}
+        {!brief.ok ? (
+          <ErrorState title="We couldn't load this week's brief" message={brief.error} onRetry={reload} />
+        ) : topRec && currentBrief ? (
+          <TopMove rec={topRec} weekLabel={`Week of ${shortDate(currentBrief.week_start)}`} />
+        ) : (
+          <SetupChecklist steps={setupSteps} />
+        )}
+
+        {/* High-priority competitor signal */}
+        {urgentChange && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" as const }}
+            className="card-ink flex flex-col gap-4 p-5 sm:flex-row sm:items-center"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-lime-300">
+              <Eye className="h-5 w-5 text-ink" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400" aria-hidden="true" />
+                High-priority signal
+              </p>
+              <p className="mt-1 text-sm font-semibold text-white">
+                {urgentChange.competitor_name}:{" "}
+                <span className="font-normal text-white/80">{urgentChange.description}</span>
+              </p>
+            </div>
+            <Link href="/session" className="btn-lime shrink-0 self-start sm:self-auto">
+              Plan a response <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </motion.div>
+        )}
+
+        {/* Secondary stats */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {stats.map((s, i) => (
+            <StatCard key={s.label} index={i} {...s} />
+          ))}
         </div>
-        <Link href="/session" className="btn-primary self-start sm:self-auto">
-          <Sparkles className="h-4 w-4" />
-          New strategy session
-        </Link>
-      </div>
 
-      {/* Prototype notice */}
-      <div className="flex items-start gap-3 rounded-control border border-brand-200/60 bg-lilac px-4 py-3">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-        <p className="text-sm text-gray-700">
-          <span className="font-semibold text-ink">Agenzy prototype demo. </span>
-          {loading
-            ? "Connecting to workspace data…"
-            : loadError
-            ? "Workspace data could not be reached; illustrative samples are shown where relevant."
-            : "Results shown here depend on the configured workspace and sources."}
-        </p>
-      </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+            {currentBrief && (
+              <SectionCard
+                icon={TrendingUp}
+                title="More moves this week"
+                footer={{ href: "/brief", label: "Read full brief" }}
+                index={4}
+              >
+                <PlaysList plays={otherPlays} />
+              </SectionCard>
+            )}
 
-      {/* High-priority competitor signal */}
-      {urgentChange && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" as const }}
-          className="card-ink flex flex-col gap-4 p-5 sm:flex-row sm:items-center"
-        >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-lime-300">
-            <Eye className="h-5 w-5 text-ink" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-              High-priority signal
-            </p>
-            <p className="mt-1 text-sm font-semibold text-white">
-              {urgentChange.competitor_name}: <span className="font-normal text-white/80">{urgentChange.description}</span>
-            </p>
+            <SectionCard
+              icon={MessageSquare}
+              title="Recent sessions"
+              meta={
+                <Link href="/session" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+                  Ask something
+                </Link>
+              }
+              index={5}
+            >
+              {sessions.ok ? (
+                <SessionsList sessions={sessions.data.slice(0, 3)} />
+              ) : (
+                <SectionError message={sessions.error} onRetry={reload} />
+              )}
+            </SectionCard>
           </div>
-          <Link href="/session" className="btn-lime shrink-0 self-start sm:self-auto">
-            Plan a response <ArrowRight className="h-4 w-4" />
-          </Link>
-        </motion.div>
-      )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s, i) => (
-          <StatCard key={s.label} index={i} {...s} />
-        ))}
-      </div>
+          <div className="flex flex-col gap-6">
+            <SectionCard icon={Calendar} title="Market calendar" index={6}>
+              {occasions.ok ? (
+                <CalendarList occasions={occasions.data.slice(0, 4)} />
+              ) : (
+                <SectionError message={occasions.error} onRetry={reload} />
+              )}
+            </SectionCard>
 
-      {/* Main grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <SectionCard
-            icon={TrendingUp}
-            title="This week's plays"
-            meta={<span className="text-xs text-gray-500">From current brief</span>}
-            footer={{ href: "/brief", label: brief ? "Read full brief" : "Generate your first brief" }}
-            index={4}
-          >
-            <PlaysList plays={plays} />
-          </SectionCard>
-
-          <SectionCard
-            icon={MessageSquare}
-            title="Recent sessions"
-            meta={
-              <Link href="/session" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
-                Ask something
-              </Link>
-            }
-            index={5}
-          >
-            <SessionsList sessions={sessions} />
-          </SectionCard>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <SectionCard icon={Calendar} title="Market calendar" index={6}>
-            <CalendarList occasions={occasions} />
-          </SectionCard>
-
-          <SectionCard
-            icon={Eye}
-            title="Competitor pulse"
-            footer={{ href: "/competitors", label: "View competitors" }}
-            index={7}
-          >
-            <PulseList changes={changes} />
-          </SectionCard>
+            <SectionCard icon={Eye} title="Competitor pulse" footer={{ href: "/competitors", label: "View competitors" }} index={7}>
+              {changes.ok ? (
+                <PulseList
+                  changes={changes.data.slice(0, 3)}
+                  trackedCount={competitorCount.ok ? competitorCount.data : null}
+                />
+              ) : (
+                <SectionError message={changes.error} onRetry={reload} />
+              )}
+            </SectionCard>
+          </div>
         </div>
       </div>
-    </div>
+    </MotionConfig>
   );
 }

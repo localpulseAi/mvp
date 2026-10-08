@@ -1,23 +1,27 @@
 import { Facebook, Instagram, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { INTEGRATIONS } from "@/lib/integrations";
 
 export type Tab = "audit" | "plan" | "history";
 export type ItemStatus = "pending" | "in_progress" | "done" | "dismissed";
 
-export function parseDate(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
+import { parseApiDate as parseDate } from "@/lib/utils";
+export { parseDate };
 
 export function weekRange(start: string, end: string): string {
-  return `Week of ${parseDate(start).toLocaleDateString("en-CA", { month: "long", day: "numeric" })} – ${parseDate(end).toLocaleDateString("en-CA", { day: "numeric", year: "numeric" })}`;
+  const a = parseDate(start);
+  const b = parseDate(end);
+  const startLabel = a.toLocaleDateString("en-CA", { month: "long", day: "numeric" });
+  const endLabel =
+    a.getMonth() === b.getMonth()
+      ? `${b.getDate()}, ${b.getFullYear()}`
+      : b.toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" });
+  return `Week of ${startLabel} – ${endLabel}`;
 }
 
-export const PLATFORM_META: Record<string, { label: string }> = {
-  instagram: { label: "Instagram" },
-  facebook: { label: "Facebook" },
-  google_business: { label: "Google Business" },
-};
+export const PLATFORM_META: Record<string, { label: string }> = Object.fromEntries(
+  INTEGRATIONS.map((i) => [i.id, { label: i.label }])
+);
 
 export const PRIORITY_META = {
   high:   { label: "High",   pill: "bg-red-50 text-red-700",     dot: "bg-red-500",   border: "border-l-red-500" },

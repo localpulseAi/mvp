@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,12 +36,13 @@ export function Section({
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
+  const reduced = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: reduced ? 0 : 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25, ease: "easeOut" as const }}
+      exit={{ opacity: 0, y: reduced ? 0 : -8 }}
+      transition={{ duration: reduced ? 0 : 0.25, ease: "easeOut" as const }}
     >
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>

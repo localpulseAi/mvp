@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight } from "lucide-react";
+import { AlertCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const fadeUp = {
@@ -81,16 +81,34 @@ export function StatCard({ label, value, sub, icon: Icon, tone = "default", inde
           <Icon className={cn("h-4 w-4", alert ? "text-red-600" : "text-brand-600")} />
         </span>
       </div>
-      <p className="tabular mt-3 font-display text-3xl font-semibold leading-none text-ink">{value}</p>
+      <p
+        className={cn(
+          "tabular mt-3 font-display font-semibold leading-none",
+          /^\d+$/.test(value) ? "text-3xl text-ink" : value === "Unavailable" ? "text-lg text-gray-500" : "text-2xl text-ink"
+        )}
+      >
+        {value}
+      </p>
       <p className={cn("mt-1.5 text-xs", alert ? "font-medium text-red-700" : "text-gray-500")}>{sub}</p>
     </motion.div>
   );
 }
 
-export function SampleTag() {
+/** Inline per-section failure. A failed section never renders as empty or zero. */
+export function SectionError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-      Sample
-    </span>
+    <div role="alert" className="flex flex-col gap-2 px-5 py-5 text-sm">
+      <p className="flex items-start gap-2 text-gray-700">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+        <span>
+          <span className="font-semibold text-ink">Couldn&apos;t load this section.</span> {message}
+        </span>
+      </p>
+      {onRetry && (
+        <button onClick={onRetry} className="self-start pl-6 text-sm font-semibold text-brand-700 hover:underline">
+          Try again
+        </button>
+      )}
+    </div>
   );
 }

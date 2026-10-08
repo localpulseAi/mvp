@@ -18,7 +18,7 @@ const poppins = Poppins({
 
 const fredoka = Fredoka({
   subsets: ["latin"],
-  weight: ["600"],
+  weight: ["500", "600"],
   display: "swap",
   variable: "--font-fredoka",
 });

@@ -40,7 +40,7 @@ function BrandPanel() {
     <aside className="relative hidden overflow-hidden bg-ink lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-brand-600/40 blur-3xl"
+        className="pointer-events-none absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-brand-600/45 blur-3xl"
       />
       <div
         aria-hidden="true"
@@ -52,7 +52,7 @@ function BrandPanel() {
       </Link>
 
       <div className="relative max-w-md">
-        <Spark className="mb-6 h-8 w-8 animate-twinkle text-lime-300" />
+        <Spark className="mb-6 h-8 w-8 animate-twinkle text-lime-300 motion-reduce:animate-none" />
         <h2 className="font-display text-4xl font-semibold leading-[44px] text-white">
           Clear thinking.
           <br />
@@ -95,7 +95,7 @@ export function AuthShell({ children }: AuthShellProps) {
           </Link>
         </header>
         <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:py-12">
-          <div className="w-full max-w-md">{children}</div>
+          <div className="w-full max-w-[530px]">{children}</div>
         </main>
       </div>
       <BrandPanel />

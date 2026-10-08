@@ -1,14 +1,44 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8990";
 
+/**
+ * Typed API failure so pages can tell "the workspace API can't be reached"
+ * apart from "the request failed". Never render either as a real zero.
+ *
+ * kind:
+ *   "unavailable"  — network failure / no backend (public demo deployment)
+ *   "unauthorized" — 401/403, no signed-in workspace
+ *   "server"       — 5xx
+ *   "client"       — other 4xx (validation, not found)
+ */
+export type ApiErrorKind = "unavailable" | "unauthorized" | "server" | "client";
+
+export class ApiError extends Error {
+  kind: ApiErrorKind;
+  status: number | null;
+  constructor(message: string, kind: ApiErrorKind, status: number | null) {
+    super(message);
+    this.name = "ApiError";
+    this.kind = kind;
+    this.status = status;
+  }
+}
+
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}/api/v1${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...init.headers },
-    ...init,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/v1${path}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...init.headers },
+      ...init,
+    });
+  } catch {
+    throw new ApiError("The workspace service can't be reached right now.", "unavailable", null);
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `API error ${res.status}`);
+    const kind: ApiErrorKind =
+      res.status === 401 || res.status === 403 ? "unauthorized" : res.status >= 500 ? "server" : "client";
+    throw new ApiError(body.detail ?? `Request failed (${res.status})`, kind, res.status);
   }
   return res.json();
 }

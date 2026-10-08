@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Calendar, Eye, Lightbulb, TrendingUp, Users } from "lucide-react";
-import type { BriefRecommendation, CompetitorBriefEntry } from "@/lib/api";
-import { sampleBrief } from "@/lib/demo-content";
+import type { BriefRecommendation, CompetitorBriefEntry, OccasionItem } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 
 export const rise = {
@@ -137,57 +136,60 @@ export function CompetitorWatch({ entries }: { entries: CompetitorBriefEntry[] }
   );
 }
 
-const sampleOccasions = [
-  { label: "Mother's Day", date: "May 11", badge: "7 days" },
-  { label: "Victoria Day", date: "May 19", badge: "15 days" },
-  { label: "Lilac Festival", date: "May 24–25", badge: "20 days" },
-  { label: "Stampede", date: "Jul 4", badge: "61 days" },
-];
+function relativeDays(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
 
-export function SampleOccasions() {
+/** Evidence freshness — which sources fed this brief and how recent they are. */
+export function DataFreshness({ freshness }: { freshness: Record<string, string> }) {
+  const entries = Object.entries(freshness);
+  if (entries.length === 0) return null;
   return (
-    <div>
-      <p className="eyebrow text-gray-500">Sample planning occasions</p>
-      <p className="mt-1 text-xs text-gray-400">Illustrative examples, not a live calendar</p>
-      <div className="mt-3 space-y-2">
-        {sampleOccasions.map((o) => (
-          <div key={o.label} className="card p-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-ink">{o.label}</p>
-              <Badge variant="brand" className="tabular text-[10px]">{o.badge}</Badge>
-            </div>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
-              <Calendar className="h-3 w-3" />
-              {o.date}
-            </p>
-          </div>
+    <section className="card p-5" aria-labelledby="freshness-title">
+      <h2 id="freshness-title" className="text-xs font-semibold uppercase tracking-[0.1em] text-gray-500">
+        Evidence used
+      </h2>
+      <ul className="mt-3 space-y-2">
+        {entries.map(([source, at]) => (
+          <li key={source} className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-gray-700">{source}</span>
+            <span className="tabular shrink-0 text-xs text-gray-500">{relativeDays(at)}</span>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }
 
-export function SampleBriefCard() {
+export function UpcomingOccasions({ occasions }: { occasions: OccasionItem[] }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 sm:p-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline">Illustrative sample</Badge>
-        <p className="text-sm font-semibold text-ink">Sample marketing brief</p>
-      </div>
-      <p className="mt-3 text-sm leading-relaxed text-gray-700">{sampleBrief.marketRead}</p>
-      <div className="mt-4 space-y-3">
-        {sampleBrief.recommendations.map((rec, index) => (
-          <div key={rec.title} className="rounded-control border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-ink">
-              {index + 1}. {rec.title}
-            </p>
-            <p className="mt-1 text-sm leading-relaxed text-gray-600">{rec.body}</p>
-            <p className="mt-2 text-xs leading-relaxed text-gray-500">
-              <span className="font-semibold text-brand-700">Why this appears:</span> {rec.reasoning}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
+    <section aria-labelledby="occasions-title">
+      <h2 id="occasions-title" className="text-xs font-semibold uppercase tracking-[0.1em] text-gray-500">
+        Coming up locally
+      </h2>
+      {occasions.length === 0 ? (
+        <p className="mt-2 text-sm text-gray-500">No upcoming occasions match your business category.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {occasions.map((o) => (
+            <li key={o.id} className="card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-ink">{o.name}</p>
+                <Badge variant="brand" className="tabular shrink-0 text-[10px]">
+                  {o.days_out} days
+                </Badge>
+              </div>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                <Calendar className="h-3 w-3" aria-hidden="true" />
+                {new Date(o.date).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

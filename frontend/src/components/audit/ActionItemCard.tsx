@@ -17,9 +17,12 @@ const STATUS_OPTIONS: { id: ItemStatus; label: string; icon: typeof Circle }[] =
 export function ActionItemCard({
   item,
   onStatusChange,
+  sample = false,
 }: {
   item: AuditActionItem;
   onStatusChange: (id: string, status: ItemStatus) => void;
+  /** Sample/demo item: status changes stay in this browser tab only. */
+  sample?: boolean;
 }) {
   const priority = PRIORITY_META[item.priority] ?? PRIORITY_META.low;
   const [expanded, setExpanded] = useState(false);
@@ -45,36 +48,40 @@ export function ActionItemCard({
               {CATEGORY_LABELS[item.category] ?? item.category}
             </span>
             <span className="tabular rounded-full border border-gray-200 px-2 py-0.5 text-[11px] text-gray-600">
+              <span className="sr-only">Effort: </span>
               {EFFORT_LABELS[item.effort_band] ?? item.effort_band}
             </span>
           </div>
           <p className={cn("font-display text-[15px] font-semibold text-ink", done && "text-gray-400 line-through")}>
             {item.title}
           </p>
-          <p className="mt-1 text-sm leading-relaxed text-gray-600">{item.why}</p>
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <dt className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Why it matters</dt>
+              <dd className="text-sm leading-relaxed text-gray-700">{item.why}</dd>
+            </div>
+            <div>
+              <dt className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Result to watch</dt>
+              <dd className="text-sm leading-relaxed text-gray-700">{item.watch_for}</dd>
+            </div>
+          </dl>
 
           <button
             onClick={() => setExpanded((e) => !e)}
             aria-expanded={expanded}
             className="mt-3 inline-flex items-center gap-1 rounded text-xs font-semibold text-brand-700 hover:text-brand-800"
           >
-            {expanded ? "Hide details" : "How to do it"}
+            {expanded ? "Hide steps" : "How to do it"}
             <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
           </button>
 
           {expanded && (
-            <div className="mt-3 grid gap-3 rounded-control bg-canvas p-4 sm:grid-cols-2">
-              <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">How to do it</p>
-                <p className="text-sm leading-relaxed text-gray-700">{item.how}</p>
-              </div>
-              <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Result to watch</p>
-                <p className="text-sm leading-relaxed text-gray-700">{item.watch_for}</p>
-              </div>
+            <div className="mt-3 rounded-control bg-canvas p-4">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">How to do it</p>
+              <p className="text-sm leading-relaxed text-gray-700">{item.how}</p>
               <Link
                 href="/session"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800 sm:col-span-2"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
               >
                 Discuss in a Strategy Session
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -84,10 +91,11 @@ export function ActionItemCard({
         </div>
 
         {/* Status segmented control */}
+        <div className="flex shrink-0 flex-col items-start gap-1 md:items-end">
         <div
           role="radiogroup"
-          aria-label={`Status for ${item.title}`}
-          className="inline-flex shrink-0 self-start rounded-control border border-gray-200 bg-white p-0.5"
+          aria-label={`Status for ${item.title}${sample ? " (sample)" : ""}`}
+          className="inline-flex shrink-0 self-start rounded-control border border-gray-200 bg-white p-0.5 md:self-end"
         >
           {STATUS_OPTIONS.map((s) => {
             const Icon = s.icon;
@@ -100,7 +108,7 @@ export function ActionItemCard({
                 onClick={() => onStatusChange(item.id, s.id)}
                 title={s.label}
                 className={cn(
-                  "flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+                  "flex min-h-[36px] items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
                   active
                     ? s.id === "done"
                       ? "bg-lime-300 text-ink"
@@ -113,6 +121,8 @@ export function ActionItemCard({
               </button>
             );
           })}
+        </div>
+        {sample && <p className="text-[11px] text-gray-500">Sample · saved in this tab only</p>}
         </div>
       </div>
     </div>
