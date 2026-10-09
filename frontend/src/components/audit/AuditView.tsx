@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Activity, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { AuditActionItem, AuditSummary, SocialAuditAccount, SocialAuditDetail } from "@/lib/api";
+import type { AuditActionItem, AuditEvidence, AuditSummary, SocialAuditAccount, SocialAuditDetail } from "@/lib/api";
 import { errorMessage } from "@/lib/workspace";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { ActionItemCard } from "./ActionItemCard";
 import { AuditReport } from "./AuditReport";
 import { weekRange, type ItemStatus, type Tab } from "./meta";
+import { AgentTrace } from "./AgentTrace";
+import { DataCharts } from "./DataCharts";
+import { EvidenceList } from "./EvidenceList";
+import { computeStats } from "./evidenceStats";
 
 interface AuditViewProps {
   audit: SocialAuditDetail;
@@ -19,20 +23,36 @@ interface AuditViewProps {
   /** Sample/demo audit: status changes are local only and labelled. */
   sample?: boolean;
   loadHistory: () => Promise<AuditSummary[]>;
+  /** The data and agent runs behind this audit. */
+  loadEvidence: () => Promise<AuditEvidence>;
 }
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "audit", label: "Audit report" },
+  { id: "evidence", label: "Evidence" },
   { id: "plan", label: "Action plan" },
   { id: "history", label: "History" },
 ];
 
-export function AuditView({ audit, items, accounts, onStatusChange, sample = false, loadHistory }: AuditViewProps) {
+export function AuditView({ audit, items, accounts, onStatusChange, sample = false, loadHistory, loadEvidence }: AuditViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("audit");
   const [history, setHistory] = useState<AuditSummary[] | null>(null);
   const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(false);
   const reduced = useReducedMotion();
+  const [evidence, setEvidence] = useState<AuditEvidence | null>(null);
+  const [evidenceError, setEvidenceError] = useState("");
+
+  function fetchEvidence() {
+    setEvidenceError("");
+    loadEvidence().then(setEvidence, (err) => setEvidenceError(errorMessage(err)));
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(fetchEvidence, [audit.id]);
+  const stats = useMemo(() => (evidence ? computeStats(evidence) : null), [evidence]);
+  const collectedLabel = stats
+    ? [stats.postCount && `${stats.postCount} posts`, stats.reviewCount && `${stats.reviewCount} reviews`].filter(Boolean).join(" and ")
+    : "";
 
   const pendingCount = items.filter((i) => i.status === "pending").length;
   const doneCount = items.filter((i) => i.status === "done").length;
@@ -74,24 +94,6 @@ export function AuditView({ audit, items, accounts, onStatusChange, sample = fal
 
   return (
     <>
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        {[
-          { label: "High priority", value: highCount, dot: "bg-red-500", sub: "still open" },
-          { label: "To do", value: pendingCount, dot: "bg-brand-600", sub: "action items" },
-          { label: "Completed", value: doneCount, dot: "bg-lime-400", sub: "from this audit" },
-        ].map((m) => (
-          <div key={m.label} className="card p-4 sm:p-5">
-            <div className="flex items-center gap-2">
-              <span className={cn("h-2 w-2 rounded-full", m.dot)} aria-hidden="true" />
-              <p className="text-xs font-medium text-gray-500">{m.label}</p>
-            </div>
-            <p className="tabular mt-2 font-display text-3xl font-semibold text-ink">{m.value}</p>
-            <p className="hidden text-xs text-gray-500 sm:block">{m.sub}</p>
-          </div>
-        ))}
-      </div>
-
       {/* Tabs */}
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <div role="tablist" aria-label="Audit views" className="inline-flex gap-1 rounded-control border border-gray-200/70 bg-white p-1 shadow-soft">
@@ -122,7 +124,45 @@ export function AuditView({ audit, items, accounts, onStatusChange, sample = fal
       </div>
 
       <div id={`audit-panel-${activeTab}`} role="tabpanel" aria-labelledby={`audit-tab-${activeTab}`}>
-        {activeTab === "audit" && <AuditReport audit={audit} accounts={accounts} />}
+        {activeTab === "audit" && (
+          <motion.div {...panelMotion} className="space-y-5">
+            {evidence && stats ? (
+              <>
+                <AgentTrace
+                  evidence={evidence}
+                  stats={stats}
+                  items={items}
+                  onOpenEvidence={() => selectTab("evidence")}
+                  onOpenPlan={() => selectTab("plan")}
+                />
+                <DataCharts stats={stats} collectedLabel={collectedLabel} />
+              </>
+            ) : evidenceError ? (
+              <ErrorState title="We couldn't load the evidence behind this audit" message={evidenceError} onRetry={fetchEvidence} />
+            ) : (
+              <LoadingState label="Loading what our agents found" className="py-8" />
+            )}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <h2 className="font-display text-base font-semibold text-ink">The analyst&apos;s read</h2>
+              <span className="rounded-full bg-lilac px-2 py-0.5 text-[10px] font-semibold text-brand-700 ring-1 ring-brand-200">
+                AI interpretation · check against the data above
+              </span>
+            </div>
+            <AuditReport audit={audit} accounts={accounts} />
+          </motion.div>
+        )}
+
+        {activeTab === "evidence" && (
+          <motion.div {...panelMotion}>
+            {evidence ? (
+              <EvidenceList evidence={evidence} />
+            ) : evidenceError ? (
+              <ErrorState title="We couldn't load the evidence" message={evidenceError} onRetry={fetchEvidence} />
+            ) : (
+              <LoadingState label="Loading evidence" className="py-8" />
+            )}
+          </motion.div>
+        )}
 
         {activeTab === "plan" && (
           <motion.div {...panelMotion} className="space-y-3">

@@ -10,6 +10,9 @@
  */
 import type {
   AnalysisItem,
+  AuditEvidence,
+  EvidencePost,
+  EvidenceReview,
   AuditActionItem,
   ChangeItem,
   CompetitorOut,
@@ -363,3 +366,89 @@ export const demoAudit: SocialAuditDetail = {
 export const demoAuditHistory = [
   { id: demoAudit.id, week_start: week.start, week_end: week.end, status: "completed", generated_at: iso(-1), action_item_count: 3, has_prior_plan_progress: true },
 ];
+
+/* ── Audit evidence: what the agents retrieved (fictional) ───────────────── */
+
+/** Posts dated relative to today, weekend-heavy like the audit describes. */
+function demoPost(daysAgo: number, hour: number, media_type: string, likes: number, comments: number, caption: string): EvidencePost {
+  const d = new Date(Date.now() - daysAgo * DAY);
+  d.setHours(hour, 0, 0, 0);
+  return { source: "instagram", posted_at: d.toISOString(), media_type, likes, comments, caption, url: null };
+}
+
+function lastWeekday(target: number, weeksBack: number) {
+  const now = new Date();
+  const diff = (now.getDay() - target + 7) % 7;
+  return diff + weeksBack * 7;
+}
+
+const demoPosts: EvidencePost[] = [
+  demoPost(lastWeekday(6, 0), 10, "image", 64, 4, "Saturday cardamom buns are out of the oven. Get them warm."),
+  demoPost(lastWeekday(0, 0), 11, "reel", 88, 17, "6am with our baker: laminating the croissant dough for the weekend."),
+  demoPost(lastWeekday(5, 0), 15, "image", 41, 2, "New seasonal latte: maple and cinnamon."),
+  demoPost(lastWeekday(6, 1), 10, "carousel", 52, 5, "Brunch menu, swipe through. Served until 2pm."),
+  demoPost(lastWeekday(0, 1), 12, "image", 57, 3, "Sunday pastry case, almost gone by noon."),
+  demoPost(lastWeekday(3, 1), 16, "image", 22, 1, "Quiet afternoon on the lane."),
+  demoPost(lastWeekday(6, 2), 9, "reel", 93, 21, "Behind the counter: how we pull the perfect flat white."),
+  demoPost(lastWeekday(0, 2), 11, "image", 61, 4, "Pear and almond tarts for the weekend crowd."),
+  demoPost(lastWeekday(5, 2), 14, "image", 35, 2, "Fresh sourdough every morning."),
+  demoPost(lastWeekday(6, 3), 10, "image", 59, 3, "Saturday line out the door. Thank you, neighbours."),
+  demoPost(lastWeekday(0, 3), 12, "carousel", 48, 6, "This week's specials, all in one place."),
+  demoPost(lastWeekday(2, 3), 15, "image", 19, 0, "Cosy corner seats are free this afternoon."),
+  demoPost(lastWeekday(6, 4), 11, "reel", 79, 15, "Meet Ana, who shapes every loaf by hand."),
+];
+
+const reviewText = [
+  "Best almond croissant in the neighbourhood. Calm on a Tuesday morning, perfect for working.",
+  "Lovely pastries, friendly staff. Weekends get very busy.",
+  "Came for coffee, stayed for the cardamom bun. Quiet midweek, great spot to read.",
+  "Great flat white. Would love an easier way to order ahead.",
+  "The pear tart is incredible. Seating is limited on Saturdays.",
+  "Cosy and calm. The staff remembered my order on my second visit.",
+  "Good coffee, pastries sold out by noon on Sunday.",
+  "Nice atmosphere midweek, felt like a hidden gem.",
+  "Lovely place but the hours on Google were wrong.",
+  "Fantastic sourdough. Wish they posted their specials earlier in the day.",
+  "Friendly, warm, unfussy. My go-to on quiet mornings.",
+  "Pastries are a 10. Coffee is solid.",
+  "Busy weekend brunch, worth the wait.",
+  "Quiet on a Wednesday, which I loved.",
+  "Great bakery, could use more seating.",
+  "The cinnamon latte is my new favourite.",
+  "Wasn't sure how to book for a group.",
+  "Beautiful pastries, kind team.",
+];
+const reviewRatings = [5, 5, 5, 4, 5, 5, 4, 5, 3, 4, 5, 5, 4, 5, 4, 5, 3, 5];
+
+const demoReviews: EvidenceReview[] = reviewText.map((text, i) => ({
+  rating: reviewRatings[i],
+  posted_at: iso(-(2 + i * 3)),
+  text,
+  owner_replied: i < 10,
+}));
+
+export const demoAuditEvidence: AuditEvidence = {
+  audit_id: "demo-audit-1",
+  generated_at: iso(-1),
+  sources: [
+    { source: "instagram", scraped_at: iso(-1.02), item_count: demoPosts.length },
+    { source: "google_reviews", scraped_at: iso(-1.02), item_count: demoReviews.length },
+    { source: "google_business", scraped_at: iso(-1.02), item_count: 1 },
+  ],
+  posts: [...demoPosts].sort((a, b) => (b.posted_at ?? "").localeCompare(a.posted_at ?? "")),
+  reviews: demoReviews,
+  totals: { posts: demoPosts.length, reviews: demoReviews.length },
+  listing: { overall_rating: 4.6, review_count: 128, has_website: true, hours_listed: 7, categories: ["Café", "Bakery", "Coffee shop"] },
+  agents: [
+    {
+      agent_name: "social_presence_analyst",
+      model_used: "claude-sonnet",
+      status: "success",
+      latency_ms: 58200,
+      tools: ["owner_social_data_retrieval"],
+      tool_call_count: 2,
+      started_at: iso(-1.01),
+    },
+  ],
+  orchestration: { status: "completed", total_latency_ms: 58400, started_at: iso(-1.01), finished_at: iso(-1) },
+};

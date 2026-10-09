@@ -14,26 +14,47 @@ interface DemoBannerProps {
   /** What the demo is standing in for on this page, e.g. "this week's brief". */
   what?: string;
   className?: string;
+  /** One line on small screens (for tight layouts like the chat). */
+  compact?: boolean;
 }
 
-export function DemoBanner({ what, className }: DemoBannerProps) {
+export function DemoBanner({ what, className, compact }: DemoBannerProps) {
   return (
     <div
       role="note"
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border border-brand-200/70 bg-lilac px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between",
+        "flex gap-2 rounded-2xl border border-brand-200/70 bg-lilac px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between",
+        compact ? "flex-row items-center justify-between" : "flex-col",
         className
       )}
     >
       <p className="flex items-start gap-2.5 text-gray-700">
         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
         <span>
-          <strong className="font-semibold text-ink">{DEMO_LABEL}.</strong>{" "}
-          {what ? `You're viewing ${what} for a fictional café. ` : ""}Nothing here is a real result.
+          <strong className="font-semibold text-ink">
+            {compact ? (
+              <>
+                <span className="sm:hidden">Demo · sample data.</span>
+                <span className="hidden sm:inline">{DEMO_LABEL}.</span>
+              </>
+            ) : (
+              `${DEMO_LABEL}.`
+            )}
+          </strong>{" "}
+          <span className={compact ? "hidden sm:inline" : undefined}>
+            {what ? `You're viewing ${what} for a fictional café. ` : ""}Nothing here is a real result.
+          </span>
         </span>
       </p>
-      <Link href="/login" className="shrink-0 pl-6 text-sm font-semibold text-brand-700 hover:underline sm:pl-0">
-        Sign in to your workspace
+      <Link href="/login" className={cn("shrink-0 text-sm font-semibold text-brand-700 hover:underline sm:pl-0", compact ? "" : "pl-6")}>
+        {compact ? (
+          <>
+            <span className="sm:hidden">Sign in</span>
+            <span className="hidden sm:inline">Sign in to your workspace</span>
+          </>
+        ) : (
+          "Sign in to your workspace"
+        )}
       </Link>
     </div>
   );

@@ -441,3 +441,54 @@ export function updateActionItemStatus(itemId: string, status: string) {
 export function getActiveActionItems() {
   return apiFetch<{ items: AuditActionItem[] }>("/social-audit/items/active");
 }
+
+// ── Audit evidence (what the agents retrieved and ran) ────────────────────────
+
+export type EvidencePost = {
+  source: string;
+  posted_at: string | null;
+  media_type: string;
+  likes: number;
+  comments: number;
+  caption: string;
+  url: string | null;
+};
+
+export type EvidenceReview = {
+  rating: number;
+  posted_at: string | null;
+  text: string;
+  owner_replied: boolean;
+};
+
+export type EvidenceAgent = {
+  agent_name: string;
+  model_used: string;
+  status: string;
+  latency_ms: number;
+  tools: string[];
+  tool_call_count: number;
+  started_at: string | null;
+};
+
+export type AuditEvidence = {
+  audit_id: string;
+  generated_at: string | null;
+  sources: { source: string; scraped_at: string | null; item_count: number }[];
+  posts: EvidencePost[];
+  reviews: EvidenceReview[];
+  totals: { posts: number; reviews: number };
+  listing: {
+    overall_rating: number | null;
+    review_count: number | null;
+    has_website: boolean;
+    hours_listed: number;
+    categories: string[];
+  } | null;
+  agents: EvidenceAgent[];
+  orchestration: { status: string; total_latency_ms: number; started_at: string | null; finished_at: string | null } | null;
+};
+
+export function getAuditEvidence(auditId: string) {
+  return apiFetch<{ evidence: AuditEvidence }>(`/social-audit/${auditId}/evidence`);
+}

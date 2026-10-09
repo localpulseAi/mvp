@@ -16,6 +16,7 @@ from app.models.owner import Owner
 from app.models.social_audit import OwnerSocialAccount, SocialAudit, SocialAuditActionItem
 from app.services.auth_service import get_current_owner
 from app.services.owner_scraper import get_or_create_account
+from app.services.audit_evidence import build_audit_evidence
 
 router = APIRouter(prefix="/social-audit", tags=["social-audit"])
 log = structlog.get_logger()
@@ -270,6 +271,29 @@ async def get_audit(
         raise HTTPException(status_code=403, detail="Access denied")
 
     return {"audit": await _audit_to_detail(audit, db)}
+
+
+@router.get("/{audit_id}/evidence")
+async def get_audit_evidence(
+    audit_id: str,
+    owner: Owner = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    The data and agent work behind an audit: sources scraped, trimmed posts and
+    reviews the analysts read, listing facts, and which agents ran.
+    Owner-scoped and read-only; never returns raw payloads or prompts.
+    """
+    try:
+        aid = uuid.UUID(audit_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Audit not found")
+
+    audit = (await db.execute(select(SocialAudit).where(SocialAudit.id == aid))).scalar_one_or_none()
+    if not audit or audit.owner_id != owner.id:
+        raise HTTPException(status_code=404, detail="Audit not found")
+
+    return {"evidence": await build_audit_evidence(db, audit)}
 
 
 @router.post("/generate")

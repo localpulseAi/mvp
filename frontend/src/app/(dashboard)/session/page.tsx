@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { ChevronRight, History, Loader2, PanelLeftClose, PanelLeftOpen, Send, Sparkles } from "lucide-react";
+import { ChevronRight, History, Loader2, PanelLeftClose, PanelLeftOpen, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addFollowup, getSession, listSessions, startSession, type SessionSummary } from "@/lib/api";
 import { errorMessage, useWorkspaceData } from "@/lib/workspace";
@@ -10,13 +10,14 @@ import { demoSampleReply, demoSessionDetail } from "@/lib/demo-workspace";
 import { DemoBanner } from "@/components/ui/states";
 import { SessionHistory } from "@/components/session/SessionHistory";
 import { MessageList, type Message } from "@/components/session/MessageList";
+import { PipImg, SparkImg } from "@/components/dashboard/viz";
 
-/** One set of intent-based starters, shown only in the empty conversation. */
+/** One set of intent-based starters, shown only in the empty conversation. Each is led by the specialist it leans on. */
 const STARTERS = [
-  "Should I discount to fill quiet weekdays?",
-  "How should I respond to a competitor's price cut?",
-  "What should I do for an upcoming local event?",
-  "Is now a good time to launch a new menu item?",
+  { q: "Should I discount to fill quiet weekdays?", spark: "lime", who: "Margins" },
+  { q: "How should I respond to a competitor's price cut?", spark: "red", who: "Rivals" },
+  { q: "What should I do for an upcoming local event?", spark: "blue", who: "Market" },
+  { q: "Is now a good time to launch a new menu item?", spark: "pink", who: "Brand" },
 ];
 
 const demoHistory: SessionSummary[] = [demoSessionDetail];
@@ -53,6 +54,9 @@ export default function SessionPage() {
   // Demo: open the sample exchange. Live: open ?id= if linked from the dashboard.
   useEffect(() => {
     if (state.status !== "ready") return;
+    // Prefill the composer from ?q= (e.g. quick prompts on the dashboard).
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setInput(q.slice(0, 500));
     if (state.mode === "demo") {
       setActiveId(demoSessionDetail.id);
       setMessages(turnsToMessages(demoSessionDetail, true));
@@ -111,11 +115,11 @@ export default function SessionPage() {
     setThinking(true);
 
     if (isDemo) {
-      // No network call in the demo: a short, honest pause, then the fixed sample.
+      // No network call in the demo: a short pause so the specialist huddle can play, then the fixed sample.
       setTimeout(() => {
         setMessages((prev) => [...prev, { id: uid(), role: "assistant", kind: "strategy", output: demoSampleReply, sample: true }]);
         setThinking(false);
-      }, 300);
+      }, 2400);
       return;
     }
 
@@ -226,7 +230,7 @@ export default function SessionPage() {
             )}
           </div>
 
-          {isDemo && <DemoBanner what="a sample strategy session" className="m-3 shrink-0 rounded-xl py-2.5 sm:mx-6" />}
+          {isDemo && <DemoBanner compact what="a sample strategy session" className="m-3 shrink-0 rounded-xl py-2.5 sm:mx-6" />}
 
           <div className="flex-1 overflow-y-auto">
             {state.status === "loading" || loadingSession ? (
@@ -241,29 +245,45 @@ export default function SessionPage() {
                 transition={{ duration: 0.3, ease: "easeOut" as const }}
                 className="flex min-h-full flex-col items-center justify-center px-4 py-10 text-center sm:px-8"
               >
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 shadow-violet">
-                  <Sparkles className="h-7 w-7 text-lime-300" aria-hidden="true" />
-                </span>
-                <h2 className="mt-5 font-display text-2xl font-semibold text-ink">What&apos;s your next move?</h2>
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 240, damping: 15 }}
+                >
+                  <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" as const }}>
+                    <PipImg pose="wave" size={112} />
+                  </motion.div>
+                </motion.div>
+                <h2 className="mt-3 font-display text-2xl font-semibold text-ink">
+                  What&apos;s your next <span className="highlight">move?</span>
+                </h2>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500">
-                  Ask about a real decision. You&apos;ll get a recommendation, the reasoning, alternatives, and what to watch.
+                  Ask Pip about a real decision. Six specialists weigh in, then you get one clear recommendation.
                 </p>
-                <div className="mt-8 grid w-full max-w-2xl gap-3 sm:grid-cols-2">
-                  {STARTERS.map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => ask(q)}
-                      className="card-hover flex items-center justify-between gap-3 p-4 text-left text-sm font-medium text-ink"
+                <div className="mt-7 grid w-full max-w-2xl gap-3 sm:grid-cols-2">
+                  {STARTERS.map((s, i) => (
+                    <motion.button
+                      key={s.q}
+                      onClick={() => ask(s.q)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 + i * 0.07 }}
+                      whileHover={{ y: -3 }}
+                      className="card-hover flex items-center gap-3 p-3.5 text-left"
                     >
-                      {q}
+                      <SparkImg color={s.spark} size={40} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{s.who}</span>
+                        <span className="block text-sm font-medium leading-snug text-ink">{s.q}</span>
+                      </span>
                       <ChevronRight className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </motion.div>
             ) : (
               <>
-                <MessageList messages={messages} thinking={thinking} onRetry={(q) => ask(q)} />
+                <MessageList messages={messages} thinking={thinking} onRetry={(q) => ask(q)} onFollowUp={(q) => ask(q)} />
                 <div ref={bottomRef} />
               </>
             )}

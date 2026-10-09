@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  getAuditEvidence,
   getSocialAccounts,
   getCurrentAudit,
   listAudits,
@@ -14,7 +15,7 @@ import {
   type SocialAuditDetail,
 } from "@/lib/api";
 import { useWorkspaceData, errorMessage } from "@/lib/workspace";
-import { demoAudit, demoAuditHistory, demoSocialAccounts } from "@/lib/demo-workspace";
+import { demoAudit, demoAuditEvidence, demoAuditHistory, demoSocialAccounts } from "@/lib/demo-workspace";
 import { DemoBanner, ErrorState, LoadingState, PageHeader } from "@/components/ui/states";
 import { weekRange, type ItemStatus } from "@/components/audit/meta";
 import { AuditView } from "@/components/audit/AuditView";
@@ -34,6 +35,7 @@ async function loadLive(): Promise<AuditData> {
 }
 
 const demoHistory = async () => demoAuditHistory;
+const demoEvidence = async () => demoAuditEvidence;
 const liveHistory = async () => (await listAudits(20)).audits;
 
 function auditSubtitle(audit: SocialAuditDetail | null) {
@@ -168,6 +170,7 @@ export default function AuditPage() {
           accounts={demoSocialAccounts}
           onStatusChange={handleSampleStatus}
           sample
+          loadEvidence={demoEvidence}
           loadHistory={demoHistory}
         />
       </div>
@@ -238,6 +241,7 @@ export default function AuditPage() {
           items={items}
           accounts={accounts}
           onStatusChange={handleStatusChange}
+          loadEvidence={isDemo ? demoEvidence : () => getAuditEvidence(audit.id).then((r) => r.evidence)}
           sample={isDemo}
           loadHistory={isDemo ? demoHistory : liveHistory}
         />

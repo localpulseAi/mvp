@@ -4,7 +4,7 @@ import { parseApiDate } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MotionConfig } from "framer-motion";
-import { Clock, Loader2, RefreshCw, Sparkles, Newspaper, CheckCircle2 } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles, CheckCircle2 } from "lucide-react";
 import {
   generateBrief,
   getCurrentBrief,
@@ -16,14 +16,13 @@ import {
 import { errorMessage, useWorkspaceData } from "@/lib/workspace";
 import { demoBrief, demoBriefHistory, demoOccasions } from "@/lib/demo-workspace";
 import { DemoBanner, ErrorState, LoadingState, PageHeader } from "@/components/ui/states";
-import {
-  CompetitorWatch,
-  DataFreshness,
-  MarketRead,
-  Recommendations,
-  UpcomingOccasions,
-  WatchList,
-} from "@/components/brief/BriefSections";
+import { BriefHero } from "@/components/brief/BriefHero";
+import { WeekSignals } from "@/components/brief/WeekSignals";
+import { MovesExplorer } from "@/components/brief/MovesExplorer";
+import { CompetitorCards, EvidenceMeters, WatchStrip } from "@/components/brief/BriefExtras";
+import { OccasionTimeline } from "@/components/dashboard/OccasionTimeline";
+import { useTriedMoves } from "@/components/dashboard/MovesBoard";
+import { PipImg } from "@/components/dashboard/viz";
 
 type PastBriefSummary = { id: string; week_start: string; week_end: string; status: string };
 
@@ -40,7 +39,7 @@ async function loadLive(): Promise<BriefData> {
     listBriefs(),
     getOccasions().then((r) => r.occasions ?? [], () => null),
   ]);
-  return { brief: current?.brief ?? null, history: (list.briefs ?? []).slice(1), occasions: occasions?.slice(0, 4) ?? null };
+  return { brief: current?.brief ?? null, history: (list.briefs ?? []).slice(1), occasions: occasions ?? null };
 }
 
 const demoData: BriefData = { brief: demoBrief, history: demoBriefHistory.slice(1), occasions: demoOccasions };
@@ -60,6 +59,9 @@ export default function BriefPage() {
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  const readyBrief = state.status === "ready" ? state.data.brief : null;
+  const { tried, toggle } = useTriedMoves(readyBrief?.id ?? null, readyBrief?.recommendations?.length ?? 0);
 
   // Stop the progress indicator once a new brief arrives.
   const startedWith = useRef<string | null>(null);
@@ -133,10 +135,8 @@ export default function BriefPage() {
           description="Briefs arrive every Monday once your workspace has enough context."
         />
         <section className="card-lilac max-w-3xl p-6 sm:p-8">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 shadow-violet">
-            <Newspaper className="h-6 w-6 text-white" aria-hidden="true" />
-          </span>
-          <h2 className="mt-5 font-display text-xl font-semibold text-ink">
+          <PipImg pose="checklist" size={96} />
+          <h2 className="mt-3 font-display text-xl font-semibold text-ink">
             Your brief starts <span className="highlight">here</span>
           </h2>
           <p className="mt-2 text-sm leading-6 text-gray-700">
@@ -171,65 +171,65 @@ export default function BriefPage() {
   const recommendations = brief.recommendations ?? [];
   const watchFor = brief.watch_for ?? [];
   const competitorEntries = brief.competitor_section?.entries ?? [];
+  const chips: { label: string; tone?: "lime" | "plain" }[] = [];
+  if (recommendations.length) chips.push({ label: `${recommendations.length} moves`, tone: "lime" });
+  if (competitorEntries.length) chips.push({ label: `${competitorEntries.length} competitor signals` });
+  if (brief.data_freshness) chips.push({ label: `${Object.keys(brief.data_freshness).length} sources` });
+  chips.push({ label: isDemo ? "Sample · fictional café" : "From your workspace" });
 
   return wrap(
     <>
       {isDemo && <DemoBanner what="a sample weekly brief" />}
 
-      <PageHeader
-        eyebrow="Weekly strategic brief"
+      <BriefHero
         title={`Week of ${fmt(brief.week_start, { month: "long", day: "numeric" })}`}
-        description={`${fmt(brief.week_start)} – ${fmt(brief.week_end, { month: "short", day: "numeric", year: "numeric" })}`}
+        range={`${fmt(brief.week_start)} – ${fmt(brief.week_end, { month: "short", day: "numeric", year: "numeric" })}`}
+        generated={`Generated ${fmt(brief.generated_at, { weekday: "short", month: "short", day: "numeric" })}`}
+        chips={chips}
         action={
           !isDemo && (
-            <button onClick={handleGenerate} disabled={generating} className="btn-secondary">
+            <button onClick={handleGenerate} disabled={generating} className="btn-lime">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
               {generating ? "Regenerating…" : "Regenerate"}
             </button>
           )
         }
       />
-      <div className="-mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5">
-          <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-          Generated {fmt(brief.generated_at, { weekday: "long", month: "short", day: "numeric" })}
-        </span>
-        <span>{isDemo ? "Sample brief · fictional café" : "From your workspace data"}</span>
-      </div>
       {genStatus}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="min-w-0 space-y-6">
-          {brief.market_read && <MarketRead text={brief.market_read} />}
-          {recommendations.length > 0 && <Recommendations items={recommendations} />}
-          {watchFor.length > 0 && <WatchList items={watchFor} />}
-          {competitorEntries.length > 0 && <CompetitorWatch entries={competitorEntries} />}
-        </div>
+      {brief.market_read && <WeekSignals text={brief.market_read} />}
 
-        <aside className="space-y-6">
-          {brief.data_freshness && <DataFreshness freshness={brief.data_freshness} />}
-
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-5">
+          {recommendations.length > 0 && <MovesExplorer recs={recommendations} tried={tried} onToggle={toggle} />}
+          {watchFor.length > 0 && <WatchStrip items={watchFor} />}
+          {competitorEntries.length > 0 && <CompetitorCards entries={competitorEntries} />}
           {occasions ? (
-            <UpcomingOccasions occasions={occasions} />
+            <OccasionTimeline occasions={occasions} />
           ) : (
             <p className="text-sm text-gray-500">Upcoming occasions couldn&apos;t be loaded.</p>
           )}
+        </div>
 
-          <section aria-labelledby="past-title">
-            <h2 id="past-title" className="text-xs font-semibold uppercase tracking-[0.1em] text-gray-500">
+        <aside className="space-y-5">
+          {brief.data_freshness && <EvidenceMeters freshness={brief.data_freshness} />}
+
+          <section className="card p-4" aria-labelledby="past-title">
+            <h2 id="past-title" className="font-display text-sm font-semibold text-ink">
               Past briefs
             </h2>
             {history.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500">This is your first brief.</p>
             ) : (
-              <ul className="mt-3 space-y-1">
+              <ol className="relative mt-3 space-y-3 border-l-2 border-lilac pl-4">
                 {history.map((b) => (
-                  <li key={b.id} className="flex items-center justify-between rounded-control px-3 py-2 text-sm">
-                    <span className="text-gray-700">Week of {fmt(b.week_start)}</span>
-                    <span className="text-xs capitalize text-gray-500">{b.status}</span>
+                  <li key={b.id} className="relative">
+                    <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-brand-300" aria-hidden="true" />
+                    <p className="text-sm font-medium text-ink">Week of {fmt(b.week_start)}</p>
+                    <p className="text-[11px] capitalize text-gray-500">{b.status}</p>
                   </li>
                 ))}
-              </ul>
+              </ol>
             )}
           </section>
         </aside>

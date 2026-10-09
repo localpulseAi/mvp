@@ -2,7 +2,7 @@ import { Facebook, Instagram, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { INTEGRATIONS } from "@/lib/integrations";
 
-export type Tab = "audit" | "plan" | "history";
+export type Tab = "audit" | "evidence" | "plan" | "history";
 export type ItemStatus = "pending" | "in_progress" | "done" | "dismissed";
 
 import { parseApiDate as parseDate } from "@/lib/utils";

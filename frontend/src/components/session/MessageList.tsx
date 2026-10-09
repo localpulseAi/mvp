@@ -15,9 +15,11 @@ interface MessageListProps {
   messages: Message[];
   thinking: boolean;
   onRetry: (question: string) => void;
+  onFollowUp?: (question: string) => void;
 }
 
-export function MessageList({ messages, thinking, onRetry }: MessageListProps) {
+export function MessageList({ messages, thinking, onRetry, onFollowUp }: MessageListProps) {
+  const lastAnswerId = [...messages].reverse().find((m) => m.role === "assistant" && m.kind === "strategy")?.id;
   return (
     <ol className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6" aria-label="Conversation">
       {messages.map((msg) => (
@@ -59,7 +61,8 @@ export function MessageList({ messages, thinking, onRetry }: MessageListProps) {
               <StrategistAvatar />
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="font-display text-sm font-semibold text-ink">Agenzy Strategist</span>
+                  <span className="font-display text-sm font-semibold text-ink">Pip</span>
+                  <span className="text-xs text-gray-500">Agenzy strategist</span>
                   {msg.sample ? (
                     <Badge variant="lime" className="text-[10px]">Sample answer — demo workspace</Badge>
                   ) : (
@@ -71,7 +74,7 @@ export function MessageList({ messages, thinking, onRetry }: MessageListProps) {
                     The demo always shows this one fictional answer. It doesn&apos;t analyse your question.
                   </p>
                 )}
-                <StrategyCard output={msg.output} />
+                <StrategyCard output={msg.output} onFollowUp={msg.id === lastAnswerId ? onFollowUp : undefined} />
               </div>
             </div>
           )}
