@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Spark } from "../Spark";
+import { usePip3D } from "@/lib/pip";
 
 /**
  * Pip perched on the top edge of the hero sample brief, giving a thumbs-up.
@@ -11,6 +12,7 @@ import { Spark } from "../Spark";
  */
 export function HeroPip({ sample, cheer }: { sample: string; cheer: string }) {
   const reduced = !!useReducedMotion();
+  const pip3d = usePip3D();
   const [showCheer, setShowCheer] = useState(false);
   const first = useRef(true);
 
@@ -26,6 +28,9 @@ export function HeroPip({ sample, cheer }: { sample: string; cheer: string }) {
       setShowCheer(false);
     };
   }, [sample]);
+
+  // The 3D guide stands here instead on wide screens.
+  if (pip3d) return null;
 
   return (
     <motion.div

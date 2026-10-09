@@ -108,7 +108,7 @@ export function Hero() {
   return (
     <section className="relative">
       <HeroBackdrop reduced={reduced} />
-      <div className="site-container relative grid items-center gap-24 pb-10 pt-11 md:pb-16 md:pt-14 lg:grid-cols-[1.04fr_1fr] lg:gap-[52px] lg:pb-[66px] lg:pt-[100px]">
+      <div className="site-container relative grid items-center gap-24 pb-10 pt-11 md:pb-16 md:pt-14 lg:grid-cols-[1.04fr_1fr] lg:gap-[52px] lg:pb-[66px] lg:pt-[150px]">
         <div className="max-w-[590px]">
           <motion.a
             {...item(0)}

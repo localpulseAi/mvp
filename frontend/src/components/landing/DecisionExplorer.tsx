@@ -6,6 +6,15 @@ import { Minus, Plus } from "lucide-react";
 import { Spark } from "./Spark";
 import { SCENARIO_EVENT, discountImpact, scenarios, type ScenarioId } from "./scenarios";
 import { cn } from "@/lib/utils";
+import { pipJump, pipSay } from "@/lib/pip";
+
+const PIP_REACTIONS: Record<ScenarioId, string> = {
+  quiet: "Quiet hours? I love a challenge.",
+  discount: "Let's check the margin first.",
+  competitor: "Don't panic. Let's look closer.",
+  occasion: "Ooh, a local moment!",
+  social: "Let's make booking easy.",
+};
 
 const spring = { type: "spring" as const, stiffness: 350, damping: 32 };
 
@@ -87,10 +96,11 @@ export function DecisionExplorer() {
   const s = scenarios.find((x) => x.id === selected)!;
   const done = (checked[selected] ?? []).length;
 
-  function select(id: ScenarioId) {
+  function select(id: ScenarioId, fromUser = true) {
     setSelected(id);
     setShowReason(false);
     setPlanOpen(false);
+    if (fromUser) pipSay(PIP_REACTIONS[id]);
   }
 
   useEffect(() => {
@@ -116,10 +126,13 @@ export function DecisionExplorer() {
   }
 
   function toggle(i: number) {
-    setChecked((old) => {
-      const arr = old[selected] ?? [];
-      return { ...old, [selected]: arr.includes(i) ? arr.filter((x) => x !== i) : [...arr, i] };
-    });
+    const arr = checked[selected] ?? [];
+    const next = arr.includes(i) ? arr.filter((x) => x !== i) : [...arr, i];
+    setChecked((old) => ({ ...old, [selected]: next }));
+    if (next.length === 3 && arr.length === 2) {
+      pipSay("Nice work! That's a plan.");
+      pipJump();
+    }
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Clock } from "lucide-react";
-import { PipImg } from "@/components/dashboard/viz";
+import { MascotSlot } from "@/components/mascot/MascotSlot";
 import { cn } from "@/lib/utils";
 
 interface BriefHeroProps {
@@ -31,9 +31,7 @@ export function BriefHero({ title, range, generated, chips, action }: BriefHeroP
           animate={{ x: 0, opacity: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
         >
-          <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" as const }}>
-            <PipImg pose="present" size={92} className="sm:!h-[112px] sm:!w-[112px]" />
-          </motion.div>
+          <MascotSlot pose2d="present" pose3d="present" size={104} tone="light" say="Your moves are ready." />
         </motion.div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-lime-300">Weekly strategic brief</p>

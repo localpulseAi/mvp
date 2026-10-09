@@ -1,12 +1,17 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion, useInView, useReducedMotion, useTransform, type MotionValue } from "framer-motion";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { Stage } from "./Stage";
 import { STEPS } from "./steps";
 import { useStepper } from "./useStepper";
 import { cn } from "@/lib/utils";
+import { PipSpot } from "@/components/mascot/PipSpot";
+import { pipJump, pipSay } from "@/lib/pip";
+
+/** What the 3D Pip says beside the stage as each step plays. */
+const PIP_LINES = ["It all starts with you.", "Gathering clues…", "Calling my specialists!", "Found it!", "Ta-da! Your next move."];
 
 function StepTab({
   index,
@@ -53,6 +58,13 @@ export function ProcessShowcase() {
   const reduced = !!useReducedMotion();
   const { step, setStep, playing, setPlaying, progress } = useStepper(inView, reduced);
 
+  // The 3D guide narrates the animation while this section is on screen.
+  useEffect(() => {
+    if (!inView) return;
+    pipSay(PIP_LINES[step]);
+    if (step === 4) pipJump();
+  }, [step, inView]);
+
   return (
     <section ref={sectionRef} id="what-you-get" className="site-container scroll-mt-24 pb-[70px] pt-10 lg:pb-[110px] lg:pt-16">
       <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-16">
@@ -64,6 +76,7 @@ export function ProcessShowcase() {
             We help with the <span className="peppy">what&apos;s next.</span>
           </h2>
         </div>
+        <PipSpot pose="search" say="Watch me dig in below!" className="h-[150px] w-[140px] shrink-0 self-end lg:hidden xl:block" />
         <p className="max-w-[325px] text-base leading-[1.75] text-gray-500">Watch how Agenzy turns your context and local signals into one clear move.</p>
       </div>
 

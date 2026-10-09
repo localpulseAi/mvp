@@ -19,9 +19,7 @@ export function AskPip({ sessions, sessionsError }: { sessions: SessionSummary[]
     <section className="card-ink relative overflow-hidden p-4 sm:p-5" aria-labelledby="askpip-title">
       <div aria-hidden="true" className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-600/40 blur-3xl" />
       <div className="relative flex items-center gap-3">
-        <motion.div animate={{ rotate: [-3, 3, -3] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" as const }}>
-          <PipImg pose="think" size={64} />
-        </motion.div>
+        <PipImg pose="think" size={64} />
         <div>
           <h2 id="askpip-title" className="font-display text-lg font-semibold">
             Stuck on a decision?

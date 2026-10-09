@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Calculator, Clock, Database, ListChecks, Sparkles, Wrench } from "lucide-react";
 import type { AuditActionItem, AuditEvidence } from "@/lib/api";
 import { PipImg, SparkImg } from "@/components/dashboard/viz";
+import { MascotSlot } from "@/components/mascot/MascotSlot";
 import { agentLabel, ago, sourceLabel, toolLabel, typeLabel, type EvidenceStats } from "./evidenceStats";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,10 @@ export function AgentTrace({ evidence, stats, items, onOpenEvidence, onOpenPlan 
             What our agents did, step by step
           </h2>
         </div>
-        <p className="text-xs text-gray-500">Generated {ago(evidence.generated_at)}{secs ? ` · took ${secs}s` : ""}</p>
+        <div className="flex items-end gap-3">
+          <p className="text-xs text-gray-500">Generated {ago(evidence.generated_at)}{secs ? ` · took ${secs}s` : ""}</p>
+          <MascotSlot pose2d="search" pose3d="search" size={72} say="Here's everything I looked at." className="hidden sm:block" />
+        </div>
       </header>
 
       {/* Pipeline */}

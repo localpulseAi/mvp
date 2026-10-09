@@ -7,6 +7,7 @@ import { Check, ChevronDown, Eye, MessageSquare } from "lucide-react";
 import type { BriefRecommendation } from "@/lib/api";
 import { PipImg, Ring } from "./viz";
 import { cn } from "@/lib/utils";
+import { pipJump, pipSay } from "@/lib/pip";
 
 /**
  * "Tried it" marks are a per-viewer convenience kept in this browser only
@@ -30,6 +31,12 @@ export function useTriedMoves(briefId: string | null, total: number) {
     (i: number) => {
       setTried((prev) => {
         const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
+        if (next.length === total && total > 0 && next.length > prev.length) {
+          pipSay("All moves tried! Proud of you.");
+          pipJump();
+        } else if (next.length > prev.length) {
+          pipSay("Nice! One more down.");
+        }
         try {
           if (key) window.localStorage.setItem(key, JSON.stringify(next));
         } catch {
@@ -38,7 +45,7 @@ export function useTriedMoves(briefId: string | null, total: number) {
         return next;
       });
     },
-    [key]
+    [key, total]
   );
 
   return { tried, toggle };

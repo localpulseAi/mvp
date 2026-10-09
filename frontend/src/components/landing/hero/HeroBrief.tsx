@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { HeroPip } from "./HeroPip";
+import { PipSpot } from "@/components/mascot/PipSpot";
+import { pipJump, pipSay } from "@/lib/pip";
 import {
   AnimatePresence,
   animate,
+  useInView,
   motion,
   useMotionValue,
   useReducedMotion,
@@ -108,6 +111,21 @@ export function HeroBrief() {
   const { active, pick, setPaused, progress, cycling } = useAutoCycle(reduced);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const s = samples[active];
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(wrapRef, { amount: 0.4 });
+  const firstSample = useRef(true);
+
+  // The 3D Pip cheers each new sample (only while the hero is on screen).
+  useEffect(() => {
+    if (firstSample.current) {
+      firstSample.current = false;
+      return;
+    }
+    if (!inView) return;
+    pipSay(samples[active].cheer);
+    pipJump();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   // Gentle 3D tilt that follows the pointer (desktop, motion allowed).
   const mx = useMotionValue(0);
@@ -137,6 +155,7 @@ export function HeroBrief() {
 
   return (
     <motion.div
+      ref={wrapRef}
       id="sample"
       initial={reduced ? false : { opacity: 0, y: 40, rotateX: 12 }}
       animate={{ opacity: 1, y: 0, rotateX: 0 }}
@@ -153,6 +172,7 @@ export function HeroBrief() {
       onBlurCapture={() => setPaused(false)}
     >
       <HeroPip sample={active} cheer={s.cheer} />
+      <PipSpot pose="wave" say="Hi, I'm Pip! Click me." className="absolute bottom-[calc(100%-14px)] right-6 h-[132px] w-[124px]" />
       <FloatingChip text={s.chips[0]} icon={CalendarDays} className="-left-6 top-24 lg:-left-10" delay={1.1} />
       <FloatingChip text={s.chips[1]} icon={Clock} className="-bottom-3 right-6 lg:-right-6" delay={1.4} />
 

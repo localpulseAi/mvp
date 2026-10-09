@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Film, GalleryHorizontal, Heart, Image as ImageIcon, MessageCircle, Star } from "lucide-react";
 import type { AuditEvidence } from "@/lib/api";
-import { PipImg } from "@/components/dashboard/viz";
+import { MascotSlot } from "@/components/mascot/MascotSlot";
 import { sourceLabel, typeLabel } from "./evidenceStats";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ export function EvidenceList({ evidence }: { evidence: AuditEvidence }) {
   return (
     <section className="space-y-4" aria-labelledby="evidence-title">
       <div className="card flex items-center gap-4 p-4 sm:p-5">
-        <PipImg pose="search" size={64} />
+        <MascotSlot pose2d="search" pose3d="search" size={72} say="These are my receipts." />
         <div className="min-w-0 flex-1">
           <h2 id="evidence-title" className="font-display text-lg font-semibold text-ink">
             Everything the analyst read

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/landing/Navbar";
+import { PipGuide } from "@/components/mascot/PipGuide";
 import { ContextStrip, Hero } from "@/components/landing/Hero";
 import { ProcessShowcase } from "@/components/landing/process/ProcessShowcase";
 import { Faq, FinalCta, Footer, HowItWorks, Pilot, Principles, TryIt } from "@/components/landing/Sections";
@@ -14,6 +15,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-clip bg-canvas">
       <Navbar />
+      <PipGuide />
       <main id="main">
         <Hero />
         <ProcessShowcase />

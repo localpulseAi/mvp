@@ -10,7 +10,8 @@ import { demoSampleReply, demoSessionDetail } from "@/lib/demo-workspace";
 import { DemoBanner } from "@/components/ui/states";
 import { SessionHistory } from "@/components/session/SessionHistory";
 import { MessageList, type Message } from "@/components/session/MessageList";
-import { PipImg, SparkImg } from "@/components/dashboard/viz";
+import { SparkImg } from "@/components/dashboard/viz";
+import { MascotSlot } from "@/components/mascot/MascotSlot";
 
 /** One set of intent-based starters, shown only in the empty conversation. Each is led by the specialist it leans on. */
 const STARTERS = [
@@ -251,7 +252,7 @@ export default function SessionPage() {
                   transition={{ type: "spring", stiffness: 240, damping: 15 }}
                 >
                   <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" as const }}>
-                    <PipImg pose="wave" size={112} />
+                    <MascotSlot pose2d="wave" pose3d="wave" size={120} say="Ask me anything." />
                   </motion.div>
                 </motion.div>
                 <h2 className="mt-3 font-display text-2xl font-semibold text-ink">

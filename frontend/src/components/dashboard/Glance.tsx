@@ -4,7 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CalendarDays, MessageSquare, Radar, Users } from "lucide-react";
 import type { ChangeItem, OccasionItem } from "@/lib/api";
-import { Ring, SEVERITY, SeverityBar, PipImg, type Severity } from "./viz";
+import { Ring, SEVERITY, SeverityBar, type Severity } from "./viz";
+import { MascotSlot } from "@/components/mascot/MascotSlot";
 import { fadeUp } from "./primitives";
 import { cn } from "@/lib/utils";
 
@@ -32,9 +33,7 @@ export function Greeting({ eyebrow, title, chips }: GreetingProps) {
           animate={{ scale: 1, rotate: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.15 }}
         >
-          <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" as const }}>
-            <PipImg pose="wave" size={88} className="sm:!h-[104px] sm:!w-[104px]" />
-          </motion.div>
+          <MascotSlot pose2d="wave" pose3d="wave" size={96} say="Here's your week!" />
         </motion.div>
         <div className="min-w-0 flex-1">
           <p className="eyebrow">{eyebrow}</p>

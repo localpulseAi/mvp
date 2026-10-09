@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { DecisionExplorer } from "./DecisionExplorer";
 import { Spark } from "./Spark";
 import { fadeUp, reveal } from "./motion";
+import { PipSpot } from "@/components/mascot/PipSpot";
 
 const CONTACT = "hello@agenzy.online";
 
@@ -30,6 +31,7 @@ export function TryIt() {
             <span className="peppy">Meet your next move.</span>
           </h2>
         </div>
+        <PipSpot pose="think" say="Pick a question. I'll show my thinking." className="h-[150px] w-[140px] shrink-0 self-end lg:hidden xl:block" />
         <p className="max-w-[325px] text-base leading-[1.75] text-gray-500">
           Pick a decision you&apos;re facing. Explore an example recommendation, see the reasoning, and turn it into a few
           practical steps.
@@ -58,6 +60,7 @@ export function HowItWorks() {
               to <span className="font-fun font-medium tracking-[-0.02em] text-lime-300">“I&apos;ve got this.”</span>
             </h2>
           </div>
+          <PipSpot pose="present" side="left" tone="light" say="Three steps. That's it." className="h-[150px] w-[140px] shrink-0 self-end lg:hidden xl:block" />
           <p className="max-w-[300px] text-[15px] leading-[1.75] text-white/75">
             No marketing degree required.
             <br />
@@ -112,6 +115,7 @@ export function Pilot() {
       </motion.div>
 
       <motion.div {...reveal} variants={fadeUp} className="relative rounded-2xl bg-brand-600 px-7 py-8 text-white sm:px-9">
+        <PipSpot pose="celebrate" say="Want in early? Say hello!" className="absolute bottom-[calc(100%-14px)] right-10 h-[140px] w-[130px]" />
         <div className="flex items-center justify-between gap-3 text-xs font-semibold tracking-[0.05em]">
           <span>EXPLORE WHAT&apos;S TAKING SHAPE</span>
           <span className="rounded-full bg-white/15 px-3 py-1 tracking-normal">Prototype</span>
@@ -150,7 +154,8 @@ export function Principles() {
   ];
   return (
     <section id="principles" className="site-container border-b border-gray-200 pb-[70px] lg:pb-[110px]">
-      <motion.div {...reveal} variants={fadeUp}>
+      <motion.div {...reveal} variants={fadeUp} className="relative">
+        <PipSpot pose="think" say="You always make the final call." className="absolute bottom-0 right-[8%] h-[150px] w-[140px]" />
         <Eyebrow>CLEAR LIMITS. BETTER DECISIONS.</Eyebrow>
         <h2 className={`${h2} text-ink`}>
           Advice you can question.
@@ -188,6 +193,7 @@ export function Faq() {
           <br />
           <span className="peppy">Good instinct.</span>
         </h2>
+        <PipSpot pose="wave" say="Tap a question. I'll wait here." className="ml-6 mt-10 h-[160px] w-[150px]" />
       </motion.div>
       <div>
         {faqs.map(([q, a], i) => (
@@ -209,6 +215,7 @@ export function FinalCta() {
     <section className="site-container pb-16">
       <motion.div {...reveal} variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-lilac px-6 py-14 text-center sm:px-12">
         <Spark className="absolute left-[6%] top-6 hidden h-48 w-48 rotate-12 text-lime-300 opacity-90 md:block lg:h-52 lg:w-52" />
+        <PipSpot pose="celebrate" say="Let's find your next move!" className="absolute bottom-10 right-[8%] h-[170px] w-[160px]" />
         <div className="relative">
           <Eyebrow>YOU DON&apos;T HAVE TO FIGURE IT ALL OUT ALONE.</Eyebrow>
           <h2 className="text-[34px] font-semibold leading-[1.2] tracking-[-0.045em] text-ink sm:text-[43px]">
