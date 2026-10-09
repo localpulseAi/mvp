@@ -40,6 +40,20 @@ def _iso(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat() if dt else None
 
 
+def _safe_int(val: Any, default: int = 0) -> int:
+    try:
+        return int(val or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float(val: Any) -> Optional[float]:
+    try:
+        return float(val) if val is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _trim(text: Optional[str], n: int) -> str:
     text = (text or "").strip()
     return text if len(text) <= n else text[: n - 1].rstrip() + "…"
@@ -68,11 +82,18 @@ async def _agent_runs(db: AsyncSession, audit: SocialAudit) -> tuple[Optional[Or
     if not audit.orchestration_id:
         return None, []
     orch = (
-        await db.execute(select(OrchestrationRun).where(OrchestrationRun.id == audit.orchestration_id))
+        await db.execute(
+            select(OrchestrationRun).where(
+                OrchestrationRun.id == audit.orchestration_id,
+                OrchestrationRun.owner_id == audit.owner_id,
+            )
+        )
     ).scalar_one_or_none()
     runs = (
         await db.execute(
-            select(AgentRun).where(AgentRun.orchestration_id == audit.orchestration_id).order_by(AgentRun.started_at)
+            select(AgentRun)
+            .where(AgentRun.orchestration_id == audit.orchestration_id, AgentRun.owner_id == audit.owner_id)
+            .order_by(AgentRun.started_at)
         )
     ).scalars().all()
     return orch, list(runs)
@@ -104,8 +125,8 @@ async def build_audit_evidence(db: AsyncSession, audit: SocialAudit) -> dict[str
                     "source": p.get("source") or s.source,
                     "posted_at": p.get("posted_at"),
                     "media_type": p.get("media_type") or "unknown",
-                    "likes": int(p.get("likes") or 0),
-                    "comments": int(p.get("comments") or 0),
+                    "likes": _safe_int(p.get("likes")),
+                    "comments": _safe_int(p.get("comments")),
                     "caption": _trim(p.get("caption"), CAPTION_CHARS),
                     "url": p.get("url"),
                 }
@@ -113,7 +134,7 @@ async def build_audit_evidence(db: AsyncSession, audit: SocialAudit) -> dict[str
         for r in s_reviews:
             reviews.append(
                 {
-                    "rating": int(r.get("rating") or 0),
+                    "rating": _safe_int(r.get("rating")),
                     "posted_at": r.get("posted_at"),
                     "text": _trim(r.get("text"), REVIEW_CHARS),
                     "owner_replied": bool(r.get("owner_replied")),
@@ -122,11 +143,11 @@ async def build_audit_evidence(db: AsyncSession, audit: SocialAudit) -> dict[str
         if nd.get("listing") and listing is None:
             l = nd["listing"]
             listing = {
-                "overall_rating": l.get("overall_rating"),
-                "review_count": l.get("review_count"),
+                "overall_rating": _safe_float(l.get("overall_rating")),
+                "review_count": _safe_int(l.get("review_count")) if l.get("review_count") is not None else None,
                 "has_website": bool(l.get("website")),
                 "hours_listed": len(l.get("hours") or {}),
-                "categories": (l.get("categories") or [])[:4],
+                "categories": [str(c) for c in (l.get("categories") or [])][:4],
             }
 
     posts.sort(key=lambda p: p.get("posted_at") or "", reverse=True)
@@ -137,7 +158,7 @@ async def build_audit_evidence(db: AsyncSession, audit: SocialAudit) -> dict[str
             "agent_name": r.agent_name,
             "model_used": r.model_used,
             "status": r.status,
-            "latency_ms": r.latency_ms,
+            "latency_ms": r.latency_ms or 0,
             "tools": sorted({c.get("tool_name") for c in ((r.tool_calls or {}).get("calls") or []) if c.get("tool_name")}),
             "tool_call_count": len((r.tool_calls or {}).get("calls") or []),
             "started_at": _iso(r.started_at),
@@ -158,7 +179,7 @@ async def build_audit_evidence(db: AsyncSession, audit: SocialAudit) -> dict[str
         "agents": agents,
         "orchestration": {
             "status": orch.status,
-            "total_latency_ms": orch.total_latency_ms,
+            "total_latency_ms": orch.total_latency_ms or 0,
             "started_at": _iso(orch.started_at),
             "finished_at": _iso(orch.finished_at),
         }

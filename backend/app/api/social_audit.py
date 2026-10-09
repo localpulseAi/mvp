@@ -180,10 +180,8 @@ async def disconnect_account(
 
     result = await db.execute(select(OwnerSocialAccount).where(OwnerSocialAccount.id == aid))
     account = result.scalar_one_or_none()
-    if not account:
+    if not account or account.owner_id != owner.id:
         raise HTTPException(status_code=404, detail="Account not found")
-    if account.owner_id != owner.id:
-        raise HTTPException(status_code=403, detail="Access denied")
 
     account.is_active = False
     await db.commit()
@@ -265,15 +263,84 @@ async def get_audit(
 
     result = await db.execute(select(SocialAudit).where(SocialAudit.id == aid))
     audit = result.scalar_one_or_none()
-    if not audit:
+    if not audit or audit.owner_id != owner.id:
         raise HTTPException(status_code=404, detail="Audit not found")
-    if audit.owner_id != owner.id:
-        raise HTTPException(status_code=403, detail="Access denied")
 
     return {"audit": await _audit_to_detail(audit, db)}
 
 
-@router.get("/{audit_id}/evidence")
+class EvidenceSourceOut(BaseModel):
+    source: str
+    scraped_at: Optional[str]
+    item_count: int
+
+
+class EvidencePostOut(BaseModel):
+    source: str
+    posted_at: Optional[str]
+    media_type: str
+    likes: int
+    comments: int
+    caption: str
+    url: Optional[str]
+
+
+class EvidenceReviewOut(BaseModel):
+    rating: int
+    posted_at: Optional[str]
+    text: str
+    owner_replied: bool
+
+
+class EvidenceListingOut(BaseModel):
+    overall_rating: Optional[float]
+    review_count: Optional[int]
+    has_website: bool
+    hours_listed: int
+    categories: list[str]
+
+
+class EvidenceAgentOut(BaseModel):
+    model_config = {"protected_namespaces": ()}  # allow the "model_used" field name
+
+    agent_name: str
+    model_used: str
+    status: str
+    latency_ms: int
+    tools: list[str]
+    tool_call_count: int
+    started_at: Optional[str]
+
+
+class EvidenceOrchestrationOut(BaseModel):
+    status: str
+    total_latency_ms: int
+    started_at: Optional[str]
+    finished_at: Optional[str]
+
+
+class EvidenceTotalsOut(BaseModel):
+    posts: int
+    reviews: int
+
+
+class AuditEvidenceOut(BaseModel):
+    audit_id: str
+    generated_at: Optional[str]
+    sources: list[EvidenceSourceOut]
+    posts: list[EvidencePostOut]
+    reviews: list[EvidenceReviewOut]
+    totals: EvidenceTotalsOut
+    listing: Optional[EvidenceListingOut]
+    agents: list[EvidenceAgentOut]
+    orchestration: Optional[EvidenceOrchestrationOut]
+
+
+class AuditEvidenceResponse(BaseModel):
+    evidence: AuditEvidenceOut
+
+
+@router.get("/{audit_id}/evidence", response_model=AuditEvidenceResponse)
 async def get_audit_evidence(
     audit_id: str,
     owner: Owner = Depends(get_current_owner),
@@ -366,10 +433,8 @@ async def update_item_status(
 
     result = await db.execute(select(SocialAuditActionItem).where(SocialAuditActionItem.id == iid))
     item = result.scalar_one_or_none()
-    if not item:
+    if not item or item.owner_id != owner.id:
         raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != owner.id:
-        raise HTTPException(status_code=403, detail="Access denied")
 
     from datetime import datetime
     item.status = body.status
